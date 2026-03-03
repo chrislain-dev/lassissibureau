@@ -76,6 +76,7 @@ class RoleAndPermissionSeeder extends Seeder
             'sales.view',
             'sales.create',
             'returns.manage',
+            'resellers.manage',
         ]);
 
         $this->command->info('✅ Rôles et permissions créés avec succès!');

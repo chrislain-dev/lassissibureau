@@ -108,8 +108,8 @@ Route::middleware(['auth', 'verified', 'throttle:60,1'])->group(function () {
             Route::get('/create', \App\Livewire\Sales\CreateSale::class)->name('create');
         });
 
-        // Ventes revendeurs (Admin only) - Livewire
-        Route::middleware('admin')->group(function () {
+        // Ventes revendeurs (Admin et Vendeur) - Livewire
+        Route::middleware('can:resellers.manage')->group(function () {
             Route::get('/resellers', \App\Livewire\Sales\ResellerSales::class)->name('resellers');
             Route::get('/pending', [SaleController::class, 'pending'])->name('pending');
 
@@ -152,10 +152,10 @@ Route::middleware(['auth', 'verified', 'throttle:60,1'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | Resellers Management (Admin only)
+    | Resellers Management (Admin et Vendeur)
     |--------------------------------------------------------------------------
     */
-    Route::middleware('admin')->prefix('resellers')->name('resellers.')->group(function () {
+    Route::middleware('can:resellers.manage')->prefix('resellers')->name('resellers.')->group(function () {
         Route::get('/', [ResellerController::class, 'index'])->name('index');
         Route::get('/create', [ResellerController::class, 'create'])->name('create');
         Route::post('/', [ResellerController::class, 'store'])->name('store');
