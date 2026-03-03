@@ -75,6 +75,7 @@
                             </div>
                         @endif
                     </div>
+                    {{-- FIN Sélection du modèle --}}
 
                     {{-- État et Localisation --}}
                     <div class="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
@@ -127,6 +128,9 @@
                                 @enderror
                             </div>
                         </div>
+                    </div>
+                    {{-- FIN État et Localisation --}}
+
                     {{-- Détails complémentaires --}}
                     <div class="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
                         <div class="flex items-center gap-3 mb-4 sm:mb-6">
@@ -144,10 +148,8 @@
                                 <label for="condition" class="block text-xs font-medium text-gray-700 mb-2">
                                     Condition
                                 </label>
-                                {{-- ✅ FIX: Utiliser wire:model.live pour conversion immédiate --}}
                                 <select wire:model.live="condition" id="condition"
                                         class="block w-full py-2.5 px-3 rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 text-sm transition-all duration-200">
-                                    {{-- ✅ FIX: Option vide avec value vide (sera convertie en null par updatedCondition) --}}
                                     <option value="">Sélectionner une condition</option>
                                     @foreach($conditions as $cond)
                                         <option value="{{ $cond }}">{{ $cond }}</option>
@@ -238,7 +240,10 @@
                             @enderror
                         </div>
                     </div>
+                    {{-- FIN Détails complémentaires --}}
+
                 </div>
+                {{-- FIN Colonne gauche --}}
 
                 {{-- Colonne droite : Section IMEI (sticky sur desktop) --}}
                 <div class="lg:col-span-1">
@@ -344,9 +349,12 @@
                         </div>
                     </div>
                 </div>
-            </div>
+                {{-- FIN Colonne droite --}}
 
-            {{-- Actions --}}
+            </div>
+            {{-- FIN Grid --}}
+
+            {{-- Actions (en dehors de la grille, tout en bas) --}}
             <div class="sticky bottom-0 z-10 bg-white border border-gray-200 rounded-xl p-4 sm:p-6 shadow-lg">
                 <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
                     <a href="{{ route('products.index') }}" 
@@ -370,6 +378,8 @@
                     </button>
                 </div>
             </div>
+            {{-- FIN Actions --}}
+
         </form>
     </div>
 </div>
