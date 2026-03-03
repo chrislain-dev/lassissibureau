@@ -28,7 +28,7 @@ class ResellerPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('resellers.manage');
+        return $user->can('resellers.manage') || $user->isVendeur();
     }
 
     /**
@@ -36,7 +36,7 @@ class ResellerPolicy
      */
     public function update(User $user, Reseller $reseller): bool
     {
-        return $user->can('resellers.manage');
+        return $user->can('resellers.manage') || $user->isVendeur();
     }
 
     /**
@@ -49,7 +49,7 @@ class ResellerPolicy
             return false;
         }
 
-        return $user->can('resellers.manage');
+        return $user->can('resellers.manage') || $user->isVendeur();
     }
 
     /**
@@ -57,7 +57,7 @@ class ResellerPolicy
      */
     public function restore(User $user, Reseller $reseller): bool
     {
-        return $user->can('resellers.manage');
+        return $user->can('resellers.manage') || $user->isVendeur();
     }
 
     /**
@@ -65,8 +65,8 @@ class ResellerPolicy
      */
     public function forceDelete(User $user, Reseller $reseller): bool
     {
-        // Seul l'admin peut supprimer définitivement
-        return $user->isAdmin() && ! $reseller->hasPendingProducts();
+        // Admin ou Vendeur peuvent supprimer définitivement
+        return ($user->isAdmin() || $user->isVendeur()) && ! $reseller->hasPendingProducts();
     }
 
     /**
@@ -74,7 +74,7 @@ class ResellerPolicy
      */
     public function viewStatistics(User $user, Reseller $reseller): bool
     {
-        return $user->can('reports.view');
+        return $user->can('reports.view') || $user->isVendeur();
     }
 
     /**
@@ -82,6 +82,6 @@ class ResellerPolicy
      */
     public function confirmSales(User $user, Reseller $reseller): bool
     {
-        return $user->can('sales.edit');
+        return $user->can('sales.edit') || $user->isVendeur();
     }
 }

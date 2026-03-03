@@ -11,7 +11,7 @@ class UserPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('users.view');
+        return $user->can('users.view') || $user->isVendeur();
     }
 
     /**
@@ -24,7 +24,7 @@ class UserPolicy
             return true;
         }
 
-        return $user->can('users.view');
+        return $user->can('users.view') || $user->isVendeur();
     }
 
     /**
@@ -32,7 +32,7 @@ class UserPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('users.create');
+        return $user->can('users.create') || $user->isVendeur();
     }
 
     /**
@@ -45,7 +45,7 @@ class UserPolicy
             return true;
         }
 
-        return $user->can('users.edit');
+        return $user->can('users.edit') || $user->isVendeur();
     }
 
     /**
@@ -58,8 +58,8 @@ class UserPolicy
             return false;
         }
 
-        // Seul l'admin peut supprimer des utilisateurs
-        return $user->can('users.delete');
+        // Seul l'admin ou le vendeur peut supprimer des utilisateurs
+        return $user->can('users.delete') || $user->isVendeur();
     }
 
     /**
@@ -67,7 +67,7 @@ class UserPolicy
      */
     public function restore(User $user, User $model): bool
     {
-        return $user->can('users.edit');
+        return $user->can('users.edit') || $user->isVendeur();
     }
 
     /**
@@ -80,7 +80,7 @@ class UserPolicy
             return false;
         }
 
-        return $user->isAdmin();
+        return $user->isAdmin() || $user->isVendeur();
     }
 
     /**
@@ -93,8 +93,8 @@ class UserPolicy
             return false;
         }
 
-        // Seul l'admin peut assigner des rôles
-        return $user->isAdmin();
+        // L'admin et le vendeur peuvent assigner des rôles (ex: recruter)
+        return $user->isAdmin() || $user->isVendeur();
     }
 
     /**
@@ -107,7 +107,7 @@ class UserPolicy
             return true;
         }
 
-        return $user->can('reports.view');
+        return $user->can('reports.view') || $user->isVendeur();
     }
 
     /**
@@ -120,7 +120,7 @@ class UserPolicy
             return true;
         }
 
-        // Seul l'admin peut changer le mot de passe d'autres utilisateurs
-        return $user->isAdmin();
+        // Seul l'admin ou vendeur peut changer le mot de passe d'autres utilisateurs
+        return $user->isAdmin() || $user->isVendeur();
     }
 }

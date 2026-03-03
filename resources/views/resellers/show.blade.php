@@ -78,7 +78,7 @@
                 </p>
             </div>
 
-            @if(isset($stats['total_benefice']))
+            @if(auth()->user()->isAdmin() && isset($stats['total_benefice']))
                 <div class="bg-white border border-gray-200 rounded-xl p-4">
                     <p class="text-xs text-gray-500 uppercase tracking-wide">Bénéfice</p>
                     <p class="text-xl font-semibold text-gray-900">

@@ -21,6 +21,9 @@
                             <i data-lucide="undo-2" class="w-4 h-4 mr-2"></i> Remboursement
                         </span>
                     @endif
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border {{ $customerReturn->status->badgeClasses() ?? 'bg-amber-100 text-amber-800 border-amber-200' }}">
+                        {{ $customerReturn->status->label() ?? 'En attente' }}
+                    </span>
                 </div>
             </div>
 

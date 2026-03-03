@@ -22,6 +22,9 @@ enum StockMovementType: string
     case ENVOI_REPARATION = 'envoi_reparation';
     case RETOUR_FOURNISSEUR = 'retour_fournisseur';
 
+    // Annulations (remise en stock suite suppression de vente)
+    case ANNULATION_VENTE = 'annulation_vente';
+
     // Pertes
     case CASSE = 'casse';
     case VOL = 'vol';
@@ -39,6 +42,7 @@ enum StockMovementType: string
             self::RETOUR_REVENDEUR,
             self::RETOUR_CLIENT,
             self::RETOUR_REPARATION,
+            self::ANNULATION_VENTE,
             self::CORRECTION_PLUS,
         ]);
     }
@@ -62,6 +66,7 @@ enum StockMovementType: string
             self::ECHANGE_RETOUR => 'Échange suite retour',
             self::ENVOI_REPARATION => 'Envoi en réparation',
             self::RETOUR_FOURNISSEUR => 'Retour fournisseur',
+            self::ANNULATION_VENTE => 'Annulation de vente',
             self::CASSE => 'Casse',
             self::VOL => 'Vol',
             self::PERTE => 'Perte',
@@ -77,7 +82,8 @@ enum StockMovementType: string
             self::RETOUR_REVENDEUR,
             self::RETOUR_CLIENT,
             self::RETOUR_REPARATION,
-            self::TROC_RECU => 'green',
+            self::TROC_RECU,
+            self::ANNULATION_VENTE => 'green',
 
             self::VENTE_DIRECTE,
             self::VENTE_TROC => 'blue',
@@ -111,6 +117,7 @@ enum StockMovementType: string
             self::ECHANGE_RETOUR => 'refresh-cw',
             self::ENVOI_REPARATION => 'tool',
             self::RETOUR_FOURNISSEUR => 'arrow-right-circle',
+            self::ANNULATION_VENTE => 'rotate-ccw',
             self::CASSE => 'trash-2',
             self::VOL => 'alert-triangle',
             self::PERTE => 'x-circle',

@@ -355,4 +355,48 @@ class SaleServiceTest extends TestCase
         $this->assertEquals(1100000, $stats['total_revenue']); // 650000 + 450000
         $this->assertEquals(250000, $stats['total_profit']); // 150000 + 100000
     }
+
+    /** @test */
+    public function it_can_delete_sale_and_returns_product_to_stock(): void
+    {
+        // Créer un produit vendu
+        $product = Product::factory()->create([
+            'product_model_id' => $this->productModel->id,
+            'state'            => ProductState::VENDU->value,
+            'location'         => ProductLocation::CHEZ_CLIENT->value,
+            'prix_achat'       => 500000,
+            'prix_vente'       => 650000,
+            'created_by'       => $this->admin->id,
+        ]);
+
+        // Créer la vente directe confirmée associée
+        $sale = Sale::factory()->create([
+            'product_id'           => $product->id,
+            'is_confirmed'         => true,
+            'sale_type'            => \App\Enums\SaleType::ACHAT_DIRECT->value,
+            'client_name'          => 'Eric Mensah',
+            'prix_vente'           => 650000,
+            'prix_achat_produit'   => 500000,
+            'date_vente_effective' => now(),
+            'sold_by'              => $this->admin->id,
+        ]);
+
+        // Supprimer la vente avec un motif
+        $this->saleService->deleteSale($sale, 'Erreur de saisie — test');
+
+        // 1. Le produit doit être remis en stock (DISPONIBLE / BOUTIQUE)
+        $product->refresh();
+        $this->assertEquals(ProductState::DISPONIBLE, $product->state);
+        $this->assertEquals(ProductLocation::BOUTIQUE, $product->location);
+
+        // 2. Un mouvement ANNULATION_VENTE doit exister pour ce produit
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id' => $product->id,
+            'type'       => \App\Enums\StockMovementType::ANNULATION_VENTE->value,
+            'sale_id'    => $sale->id,
+        ]);
+
+        // 3. La vente doit être soft-deletée
+        $this->assertSoftDeleted($sale);
+    }
 }

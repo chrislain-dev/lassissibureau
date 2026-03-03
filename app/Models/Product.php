@@ -24,8 +24,6 @@ class Product extends Model
         'serial_number',
         'state',
         'location',
-        'prix_achat',
-        'prix_vente',
         'date_achat',
         'fournisseur',
         'notes',
@@ -36,10 +34,8 @@ class Product extends Model
     ];
 
     protected $casts = [
-        'state' => ProductState::class,
-        'location' => ProductLocation::class,
-        'prix_achat' => 'decimal:2',
-        'prix_vente' => 'decimal:2',
+        'state'     => ProductState::class,
+        'location'  => ProductLocation::class,
         'date_achat' => 'date',
     ];
 
@@ -128,12 +124,40 @@ class Product extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
+    // -------------------------------------------------------------------------
+    // Accesseurs de prix (délégation vers le ProductModel)
+    // -------------------------------------------------------------------------
+
     /**
-     * Calculer le bénéfice potentiel
+     * Prix de revient (coût d'achat) hérité du modèle
+     */
+    public function getPrixAchatAttribute(): float
+    {
+        return (float) ($this->productModel?->prix_revient_default ?? 0);
+    }
+
+    /**
+     * Prix de vente client hérité du modèle
+     */
+    public function getPrixVenteAttribute(): float
+    {
+        return (float) ($this->productModel?->prix_vente_default ?? 0);
+    }
+
+    /**
+     * Prix de vente revendeur hérité du modèle
+     */
+    public function getPrixVenteRevendeurAttribute(): float
+    {
+        return (float) ($this->productModel?->prix_vente_revendeur ?? $this->getPrixVenteAttribute());
+    }
+
+    /**
+     * Calculer le bénéfice potentiel (vente client)
      */
     public function getBeneficePotentielAttribute(): float
     {
-        return (float) ($this->prix_vente - $this->prix_achat);
+        return $this->prix_vente - $this->prix_achat;
     }
 
     /**

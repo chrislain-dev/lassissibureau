@@ -38,12 +38,7 @@ class ProductPolicy
      */
     public function update(User $user, Product $product): bool
     {
-        // Les vendeurs ne peuvent pas modifier les produits
-        if ($user->isVendeur()) {
-            return false;
-        }
-
-        return $user->can('products.edit');
+        return $user->can('products.edit') || $user->isVendeur();
     }
 
     /**
@@ -59,7 +54,7 @@ class ProductPolicy
             return false;
         }
 
-        return $user->can('products.delete');
+        return $user->can('products.delete') || $user->isVendeur();
     }
 
     /**
@@ -67,7 +62,7 @@ class ProductPolicy
      */
     public function restore(User $user, Product $product): bool
     {
-        return $user->can('products.edit');
+        return $user->can('products.edit') || $user->isVendeur();
     }
 
     /**
@@ -75,9 +70,9 @@ class ProductPolicy
      */
     public function forceDelete(User $user, Product $product): bool
     {
-        // Seul l'admin peut supprimer définitivement
+        // Admin ou Vendeur peuvent supprimer définitivement
         // Et seulement si le produit n'est pas vendu
-        return $user->isAdmin() && $product->state !== ProductState::VENDU;
+        return ($user->isAdmin() || $user->isVendeur()) && $product->state !== ProductState::VENDU;
     }
 
     /**
@@ -86,7 +81,7 @@ class ProductPolicy
     public function sell(User $user, Product $product): bool
     {
         // Doit avoir la permission de créer des ventes
-        if (! $user->can('sales.create')) {
+        if (! $user->can('sales.create') && ! $user->isVendeur()) {
             return false;
         }
 
@@ -99,12 +94,7 @@ class ProductPolicy
      */
     public function changeStateOrLocation(User $user, Product $product): bool
     {
-        // Les vendeurs ne peuvent pas changer l'état/localisation directement
-        if ($user->isVendeur()) {
-            return false;
-        }
-
-        return $user->can('stock.adjustment');
+        return $user->can('stock.adjustment') || $user->isVendeur();
     }
 
     /**
@@ -113,7 +103,7 @@ class ProductPolicy
     public function sendToRepair(User $user, Product $product): bool
     {
         // Vérifier la permission
-        if (! $user->can('repairs.create')) {
+        if (! $user->can('repairs.create') && ! $user->isVendeur()) {
             return false;
         }
 
@@ -134,7 +124,7 @@ class ProductPolicy
     public function markAsRepaired(User $user, Product $product): bool
     {
         // Vérifier la permission
-        if (! $user->can('repairs.edit')) {
+        if (! $user->can('repairs.edit') && ! $user->isVendeur()) {
             return false;
         }
 
@@ -155,7 +145,7 @@ class ProductPolicy
     public function moveToReseller(User $user, Product $product): bool
     {
         // Vérifier la permission
-        if (! $user->can('sales.create')) {
+        if (! $user->can('sales.create') && ! $user->isVendeur()) {
             return false;
         }
 
@@ -173,7 +163,7 @@ class ProductPolicy
     public function returnFromReseller(User $user, Product $product): bool
     {
         // Vérifier la permission
-        if (! $user->can('sales.edit')) {
+        if (! $user->can('sales.edit') && ! $user->isVendeur()) {
             return false;
         }
 
@@ -186,21 +176,12 @@ class ProductPolicy
     }
 
     /**
-     * Determine whether the user can update prices.
-     */
-    public function updatePrices(User $user, Product $product): bool
-    {
-        // Seul l'admin peut modifier les prix
-        return $user->isAdmin();
-    }
-
-    /**
      * Determine whether the user can mark product as lost.
      */
     public function markAsLost(User $user, Product $product): bool
     {
         // Vérifier la permission
-        if (! $user->can('stock.adjustment')) {
+        if (! $user->can('stock.adjustment') && ! $user->isVendeur()) {
             return false;
         }
 
@@ -218,7 +199,7 @@ class ProductPolicy
     public function processReturn(User $user, Product $product): bool
     {
         // Vérifier la permission
-        if (! $user->can('returns.create')) {
+        if (! $user->can('returns.create') && ! $user->isVendeur()) {
             return false;
         }
 

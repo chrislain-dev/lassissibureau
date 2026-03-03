@@ -108,9 +108,9 @@ class ProductModelController extends Controller
             'at_resellers' => $productModel->reseller_quantity,
             'in_repair' => $productModel->repair_quantity,
 
-            // Prix
-            'average_purchase_price' => $productModel->productsInStock()->avg('prix_achat') ?? 0,
-            'average_sale_price' => $productModel->productsSold()->avg('prix_vente') ?? 0,
+            // Prix - Délégués au ProductModel
+            'average_purchase_price' => $productModel->prix_revient_default ?? 0,
+            'average_sale_price'     => $productModel->prix_vente_default ?? 0,
 
             // Valeurs
             'stock_value' => $productModel->stock_value,
@@ -216,9 +216,12 @@ class ProductModelController extends Controller
      */
     private function getTotalStockValue(): float
     {
+        // Les prix sont sur ProductModel, pas sur Product
+        // On calcule : SUM(prix_revient_default) pour chaque produit en stock
         return (float) DB::table('products')
-            ->whereNull('deleted_at')
-            ->whereIn('location', ['boutique', 'en_reparation'])
-            ->sum('prix_achat');
+            ->join('product_models', 'products.product_model_id', '=', 'product_models.id')
+            ->whereNull('products.deleted_at')
+            ->whereIn('products.location', ['boutique', 'en_reparation'])
+            ->sum('product_models.prix_revient_default');
     }
 }

@@ -22,56 +22,70 @@ class SaleService
 
     /**
      * Créer une vente (avec ou sans troc).
+     * Le prix de vente est déterminé automatiquement depuis le ProductModel :
+     *  - Vente client directe  : prix_vente_default
+     *  - Vente revendeur        : prix_vente_revendeur
      */
     public function createSale(array $data): Sale
     {
         return DB::transaction(function () use ($data) {
             // Verrouiller le produit pour éviter les conditions de course (double vente)
-            $product = Product::lockForUpdate()->findOrFail($data['product_id']);
+            $product = Product::lockForUpdate()->with('productModel')->findOrFail($data['product_id']);
 
             if (! $product->isAvailable()) {
                 throw new \Exception('Ce produit n\'est pas disponible à la vente.');
             }
 
+            $isResellerSale = isset($data['reseller_id']) && $data['reseller_id'];
+
+            // Déterminer le prix de vente depuis le ProductModel
+            $prixVente = $isResellerSale
+                ? $product->prix_vente_revendeur   // prix partenaire
+                : $product->prix_vente;             // prix client
+
+            // Prix de revient pour calcul marge
+            $prixAchat = $product->prix_achat;
+
             // Déterminer le statut de paiement
             $paymentStatus = PaymentStatus::PAID;
-            $amountPaid = $data['prix_vente'];
+            $amountPaid    = $prixVente;
             $amountRemaining = 0;
-            $paymentDueDate = null;
+            $paymentDueDate  = null;
 
             // Si c'est un revendeur avec paiement différé
-            if (isset($data['reseller_id']) && $data['reseller_id']) {
-                $paymentStatus = PaymentStatus::from($data['payment_status'] ?? 'unpaid');
-                $amountPaid = $data['amount_paid'] ?? 0;
-                $amountRemaining = $data['prix_vente'] - $amountPaid;
-                $paymentDueDate = $data['payment_due_date'] ?? now()->addDays(30);
+            if ($isResellerSale) {
+                $paymentStatus   = PaymentStatus::from($data['payment_status'] ?? 'unpaid');
+                $amountPaid      = $data['amount_paid'] ?? 0;
+                $amountRemaining = $prixVente - $amountPaid;
+                $paymentDueDate  = $data['payment_due_date'] ?? now()->addDays(30);
             }
 
             // Créer la vente
             $sale = Sale::create([
-                'product_id' => $data['product_id'],
-                'sale_type' => $data['sale_type'],
-                'prix_vente' => $data['prix_vente'],
-                'prix_achat_produit' => $data['prix_achat_produit'],
-                'client_name' => $data['client_name'] ?? null,
-                'client_phone' => $data['client_phone'] ?? null,
-                'reseller_id' => $data['reseller_id'] ?? null,
+                'product_id'          => $data['product_id'],
+                'sale_type'           => $data['sale_type'],
+                'prix_vente'          => $prixVente,
+                'prix_achat_produit'  => $prixAchat,
+                'client_name'         => $data['client_name'] ?? null,
+                'client_phone'        => $data['client_phone'] ?? null,
+                'reseller_id'         => $data['reseller_id'] ?? null,
                 'date_depot_revendeur' => $data['date_depot_revendeur'] ?? null,
                 'date_vente_effective' => $data['date_vente_effective'],
-                'is_confirmed' => $data['is_confirmed'],
-                'payment_status' => $paymentStatus,
-                'amount_paid' => 0,
-                'amount_remaining' => $data['prix_vente'],
-                'payment_due_date' => $paymentDueDate,
-                'sold_by' => $data['sold_by'],
-                'notes' => $data['notes'] ?? null,
+                'is_confirmed'        => $data['is_confirmed'],
+                'payment_status'      => $paymentStatus,
+                'amount_paid'         => 0,
+                'amount_remaining'    => $prixVente,
+                'payment_due_date'    => $paymentDueDate,
+                'sold_by'             => $data['sold_by'],
+                'notes'               => $data['notes'] ?? null,
             ]);
 
             // Enregistrer le paiement initial si montant > 0
             if ($amountPaid > 0) {
                 $this->recordPayment($sale, $amountPaid, [
                     'payment_method' => $data['payment_method'] ?? 'cash',
-                    'notes' => 'Paiement initial',
+                    'reference'      => $data['payment_reference'] ?? null,
+                    'notes'          => 'Paiement initial',
                 ]);
             }
 
@@ -82,15 +96,15 @@ class SaleService
 
             // Déterminer état et localisation
             if ($data['is_confirmed']) {
-                $newState = ProductState::VENDU;
+                $newState    = ProductState::VENDU;
                 $newLocation = ProductLocation::CHEZ_CLIENT;
                 $movementType = $data['sale_type'] === SaleType::ACHAT_DIRECT->value
                     ? StockMovementType::VENTE_DIRECTE
                     : StockMovementType::VENTE_TROC;
             } else {
-                // Si non confirmé, c'est forcément un dépôt revendeur (car les ventes directes sont toujours confirmées lors de la création)
-                $newState = ProductState::DISPONIBLE;
-                $newLocation = ProductLocation::CHEZ_REVENDEUR;
+                // Si non confirmé, c'est forcément un dépôt revendeur
+                $newState     = ProductState::DISPONIBLE;
+                $newLocation  = ProductLocation::CHEZ_REVENDEUR;
                 $movementType = StockMovementType::DEPOT_REVENDEUR;
             }
 
@@ -100,9 +114,9 @@ class SaleService
                 $newLocation,
                 $data['sold_by'],
                 [
-                    'sale_id' => $sale->id,
+                    'sale_id'     => $sale->id,
                     'reseller_id' => $data['reseller_id'] ?? null,
-                    'notes' => 'Vente créée - '.$sale->sale_type->label(),
+                    'notes'       => 'Vente créée - '.$sale->sale_type->label(),
                 ]
             );
 
@@ -118,13 +132,18 @@ class SaleService
     private function handleTradeIn(Sale $sale, array $tradeInData): void
     {
         TradeIn::create([
-            'sale_id' => $sale->id,
-            'product_received_id' => null,
-            'valeur_reprise' => $tradeInData['valeur_reprise'],
-            'complement_especes' => $tradeInData['complement_especes'],
-            'imei_recu' => $tradeInData['imei_recu'],
-            'modele_recu' => $tradeInData['modele_recu'],
-            'etat_recu' => $tradeInData['etat_recu'] ?? null,
+            'sale_id'              => $sale->id,
+            'product_received_id'  => null,
+            'valeur_reprise'       => $tradeInData['valeur_reprise'],
+            'complement_especes'   => $tradeInData['complement_especes'],
+            'imei_recu'            => $tradeInData['imei_recu'],
+            'modele_recu'          => $tradeInData['modele_recu'],
+            'etat_recu'            => $tradeInData['etat_recu'] ?? null,
+            'needs_repair'         => $tradeInData['needs_repair'] ?? false,
+            'repair_notes'         => $tradeInData['repair_notes'] ?? null,
+            'repair_status'        => ($tradeInData['needs_repair'] ?? false)
+                                        ? 'en_attente_reparation'
+                                        : null,
         ]);
     }
 
@@ -134,18 +153,18 @@ class SaleService
     public function recordPayment(Sale $sale, float $amount, array $data = []): Payment
     {
         return DB::transaction(function () use ($sale, $amount, $data) {
-            // Créer le paiement
             $payment = Payment::create([
-                'sale_id' => $sale->id,
-                'amount' => $amount,
+                'sale_id'        => $sale->id,
+                'amount'         => $amount,
                 'payment_method' => $data['payment_method'] ?? 'cash',
-                'payment_date' => $data['payment_date'] ?? now(),
-                'notes' => $data['notes'] ?? null,
-                'recorded_by' => Auth::id(),
+                'payment_date'   => $data['payment_date'] ?? now(),
+                'reference'      => $data['reference'] ?? null,
+                'notes'          => $data['notes'] ?? null,
+                'recorded_by'    => Auth::id(),
             ]);
 
             // Mettre à jour le statut de paiement de la vente
-            $newAmountPaid = $sale->amount_paid + $amount;
+            $newAmountPaid     = $sale->amount_paid + $amount;
             $newAmountRemaining = $sale->prix_vente - $newAmountPaid;
 
             $newStatus = $newAmountRemaining <= 0
@@ -153,10 +172,10 @@ class SaleService
                 : ($newAmountPaid > 0 ? PaymentStatus::PARTIAL : PaymentStatus::UNPAID);
 
             $sale->update([
-                'amount_paid' => $newAmountPaid,
-                'amount_remaining' => max(0, $newAmountRemaining),
-                'payment_status' => $newStatus,
-                'final_payment_date' => $newStatus === PaymentStatus::PAID ? now() : null,
+                'amount_paid'         => $newAmountPaid,
+                'amount_remaining'    => max(0, $newAmountRemaining),
+                'payment_status'      => $newStatus,
+                'final_payment_date'  => $newStatus === PaymentStatus::PAID ? now() : null,
             ]);
 
             return $payment->fresh(['sale', 'recorder']);
@@ -164,47 +183,103 @@ class SaleService
     }
 
     /**
+     * Supprimer une vente et remettre le produit en stock.
+     * Crée un mouvement de stock ANNULATION_VENTE pour la traçabilité.
+     */
+    public function deleteSale(Sale $sale, string $reason = ''): Product
+    {
+        return DB::transaction(function () use ($sale, $reason) {
+            $product = $sale->product;
+
+            // Construire la note de traçabilité
+            $typeLabel = match ($sale->sale_type->value ?? $sale->sale_type) {
+                'achat_direct' => 'vente directe client',
+                'troc'         => 'vente avec troc',
+                default        => 'vente',
+            };
+
+            $notes = sprintf(
+                'Annulation de %s — Vente #%d — Montant: %s FCFA%s%s',
+                $typeLabel,
+                $sale->id,
+                number_format($sale->prix_vente, 0, ',', ' '),
+                $sale->client_name ? ' — Client: '.$sale->client_name : '',
+                $reason ? ' — Motif: '.$reason : ''
+            );
+
+            // Remettre le produit en stock
+            $this->stockService->createMovement([
+                'product_id'      => $product->id,
+                'type'            => StockMovementType::ANNULATION_VENTE->value,
+                'quantity'        => 1,
+                'state_before'    => $product->state->value,
+                'location_before' => $product->location->value,
+                'state_after'     => ProductState::DISPONIBLE->value,
+                'location_after'  => ProductLocation::BOUTIQUE->value,
+                'user_id'         => Auth::id(),
+                'sale_id'         => $sale->id,
+                'notes'           => $notes,
+            ]);
+
+            // Supprimer les paiements liés
+            $sale->payments()->delete();
+
+            // Supprimer la vente
+            $sale->delete();
+
+            return $product->fresh();
+        });
+    }
+
+    /**
      * Créer le produit repris dans un troc.
+     * Le troc reçu est lié à un ProductModel existant — les prix viennent du modèle.
+     * Si needs_repair = true, le produit est créé à l'état A_REPARER/EN_REPARATION.
      */
     public function createTradeInProduct(
         TradeIn $tradeIn,
         int $productModelId,
-        ?float $prixVente = null,
         ?string $notes = null
     ): Product {
-        return DB::transaction(function () use ($tradeIn, $productModelId, $prixVente, $notes) {
-            // Calculer le prix de vente si non fourni (marge 20%)
-            $calculatedPrixVente = $prixVente ?? ($tradeIn->valeur_reprise * 1.2);
+        return DB::transaction(function () use ($tradeIn, $productModelId, $notes) {
+            $initialState    = $tradeIn->needs_repair ? ProductState::A_REPARER    : ProductState::DISPONIBLE;
+            $initialLocation = $tradeIn->needs_repair ? ProductLocation::EN_REPARATION : ProductLocation::BOUTIQUE;
+            $movementType    = $tradeIn->needs_repair
+                ? StockMovementType::ENVOI_REPARATION
+                : StockMovementType::TROC_RECU;
 
-            // Créer le produithandleTradeIn
+            // Créer le produit — les prix sont portés par le ProductModel
             $product = Product::create([
                 'product_model_id' => $productModelId,
-                'imei' => $tradeIn->imei_recu,
-                'state' => ProductState::DISPONIBLE->value,
-                'location' => ProductLocation::BOUTIQUE->value,
-                'prix_achat' => $tradeIn->valeur_reprise,
-                'prix_vente' => $calculatedPrixVente,
-                'date_achat' => now(),
-                'notes' => $notes ?? 'Reçu en troc - Vente #'.$tradeIn->sale_id,
-                'condition' => 'troc',
-                'defauts' => $tradeIn->etat_recu,
-                'created_by' => Auth::id(),
+                'imei'             => $tradeIn->imei_recu,
+                'state'            => $initialState->value,
+                'location'         => $initialLocation->value,
+                'date_achat'       => now(),
+                'notes'            => $notes ?? 'Reçu en troc - Vente #'.$tradeIn->sale_id,
+                'condition'        => 'troc',
+                'defauts'          => $tradeIn->etat_recu,
+                'created_by'       => Auth::id(),
             ]);
 
             // Lier le produit au troc
-            $tradeIn->update(['product_received_id' => $product->id]);
+            $tradeIn->update([
+                'product_received_id' => $product->id,
+                'repair_status'       => $tradeIn->needs_repair ? 'en_reparation' : null,
+            ]);
 
             // Créer le mouvement de stock
             $this->stockService->createMovement([
-                'product_id' => $product->id,
-                'type' => StockMovementType::TROC_RECU->value,
-                'quantity' => 1,
-                'state_before' => null,
+                'product_id'     => $product->id,
+                'type'           => $movementType->value,
+                'quantity'       => 1,
+                'state_before'   => null,
                 'location_before' => null,
-                'state_after' => ProductState::DISPONIBLE->value,
-                'location_after' => ProductLocation::BOUTIQUE->value,
-                'user_id' => Auth::id(),
-                'notes' => 'Produit reçu en troc - Vente #'.$tradeIn->sale_id,
+                'state_after'    => $initialState->value,
+                'location_after' => $initialLocation->value,
+                'user_id'        => Auth::id(),
+                'notes'          => $tradeIn->needs_repair
+                    ? 'Troc reçu - envoi en réparation - Vente #'.$tradeIn->sale_id
+                    : 'Produit reçu en troc - Vente #'.$tradeIn->sale_id,
             ]);
 
             event(new \App\Events\TradeInProcessed($tradeIn));

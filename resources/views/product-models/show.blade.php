@@ -104,31 +104,46 @@
                 <div class="p-4 sm:p-6">
                     <h3 class="text-sm sm:text-base font-semibold text-white mb-4 sm:mb-6">Tarification par défaut</h3>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                         <div class="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-white/20">
                             <dt class="text-xs font-medium text-gray-300 mb-1 sm:mb-2">Prix d'achat</dt>
-                            <dd class="text-xl sm:text-2xl font-bold text-white break-all">{{ number_format($productModel->prix_revient_default, 0, ',', ' ') }}</dd>
+                            <dd class="text-lg sm:text-2xl font-bold text-white break-all">{{ number_format($productModel->prix_revient_default, 0, ',', ' ') }}</dd>
                             <dd class="text-xs text-gray-400 mt-1">FCFA</dd>
                         </div>
 
                         <div class="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-white/20">
-                            <dt class="text-xs font-medium text-gray-300 mb-1 sm:mb-2">Prix de vente</dt>
-                            <dd class="text-xl sm:text-2xl font-bold text-white break-all">{{ number_format($productModel->prix_vente_default, 0, ',', ' ') }}</dd>
+                            <dt class="text-xs font-medium text-gray-300 mb-1 sm:mb-2">Prix client</dt>
+                            <dd class="text-lg sm:text-2xl font-bold text-white break-all">{{ number_format($productModel->prix_vente_default, 0, ',', ' ') }}</dd>
                             <dd class="text-xs text-gray-400 mt-1">FCFA</dd>
                         </div>
 
-                        <div class="bg-green-500/20 backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-green-400/30 sm:col-span-1">
+                        <div class="bg-blue-500/20 backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-blue-400/30">
+                            <dt class="text-xs font-medium text-blue-300 mb-1 sm:mb-2">Prix revendeur</dt>
+                            <dd class="text-lg sm:text-2xl font-bold text-blue-100 break-all">
+                                {{ $productModel->prix_vente_revendeur ? number_format($productModel->prix_vente_revendeur, 0, ',', ' ') : '—' }}
+                            </dd>
+                            <dd class="text-xs text-blue-300 mt-1">
+                                @if($productModel->prix_vente_revendeur && $productModel->prix_vente_default > 0)
+                                    -{{ number_format((1 - $productModel->prix_vente_revendeur / $productModel->prix_vente_default) * 100, 0) }}% vs client
+                                @else
+                                    FCFA
+                                @endif
+                            </dd>
+                        </div>
+
+                        <div class="bg-green-500/20 backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-green-400/30">
                             @php
                                 $benefice = $productModel->prix_vente_default - $productModel->prix_revient_default;
                                 $marge = $productModel->prix_revient_default > 0 ? ($benefice / $productModel->prix_revient_default) * 100 : 0;
                             @endphp
-                            <dt class="text-xs font-medium text-green-300 mb-1 sm:mb-2">Bénéfice</dt>
-                            <dd class="text-xl sm:text-2xl font-bold text-green-100 break-all">{{ number_format($benefice, 0, ',', ' ') }}</dd>
+                            <dt class="text-xs font-medium text-green-300 mb-1 sm:mb-2">Bénéfice client</dt>
+                            <dd class="text-lg sm:text-2xl font-bold text-green-100 break-all">{{ number_format($benefice, 0, ',', ' ') }}</dd>
                             <dd class="text-xs text-green-300 mt-1">+{{ number_format($marge, 1) }}% ROI</dd>
                         </div>
                     </div>
                 </div>
             </div>
+
 
             {{-- Liste des produits avec design amélioré et regroupement --}}
             <div class="bg-white border border-gray-200 rounded-xl shadow-sm">

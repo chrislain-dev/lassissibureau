@@ -76,7 +76,8 @@ Route::middleware(['auth', 'verified', 'throttle:60,1'])->group(function () {
             Route::get('/{product}/edit', [ProductController::class, 'edit'])->name('edit');
             Route::put('/{product}', [ProductController::class, 'update'])->name('update');
             Route::delete('/{product}', [ProductController::class, 'destroy'])->name('destroy');
-            Route::put('/{product}/prices', [ProductController::class, 'updatePrices'])->name('update-prices');
+            // Routes personnalisées pour les produits
+            Route::post('/{product}/state', [ProductController::class, 'changeState'])->name('change-state');
         });
 
         // Vente rapide (Vendeurs)
@@ -118,11 +119,13 @@ Route::middleware(['auth', 'verified', 'throttle:60,1'])->group(function () {
             // Actions sur les ventes
             Route::post('/{sale}/confirm', [SaleController::class, 'confirm'])->name('confirm');
             Route::post('/{sale}/return', [SaleController::class, 'returnFromReseller'])->name('return');
-            Route::delete('/{sale}', [SaleController::class, 'destroy'])->name('destroy');
 
             // Enregistrement de paiement
             Route::post('/{sale}/payments', [SaleController::class, 'recordPayment'])->name('payments.record');
         });
+
+        // Suppression : Admin ET Vendeur (leurs propres ventes) — policy SalePolicy::delete
+        Route::delete('/{sale}', [SaleController::class, 'destroy'])->name('destroy');
 
         Route::get('/{sale}', [SaleController::class, 'show'])->name('show');
     });
@@ -176,6 +179,19 @@ Route::middleware(['auth', 'verified', 'throttle:60,1'])->group(function () {
         Route::post('/', [CustomerReturnController::class, 'store'])->name('store');
         Route::get('/{customerReturn}', [CustomerReturnController::class, 'show'])->name('show');
         Route::post('/{customerReturn}/process', [CustomerReturnController::class, 'processReturnedProduct'])->name('process');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Supplier Returns (Retours Fournisseurs — Admin only)
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('admin')->prefix('supplier-returns')->name('supplier-returns.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\SupplierReturnController::class, 'index'])->name('index');
+        Route::post('/', [\App\Http\Controllers\SupplierReturnController::class, 'store'])->name('store');
+        Route::get('/{supplierReturn}', [\App\Http\Controllers\SupplierReturnController::class, 'show'])->name('show');
+        Route::post('/{supplierReturn}/received', [\App\Http\Controllers\SupplierReturnController::class, 'markAsReceived'])->name('received');
+        Route::post('/{supplierReturn}/confirm-replacement', [\App\Http\Controllers\SupplierReturnController::class, 'confirmReplacement'])->name('confirm-replacement');
     });
 
     /*

@@ -212,21 +212,23 @@ class SaleController extends Controller
 
     /**
      * Remove the specified resource from storage.
+     * Crée un mouvement de stock ANNULATION_VENTE pour la traçabilité.
      */
-    public function destroy(Sale $sale)
+    public function destroy(Request $request, Sale $sale)
     {
         $this->authorize('delete', $sale);
 
-        if ($sale->is_confirmed) {
-            return back()->with('error', 'Impossible de supprimer une vente confirmée.');
-        }
+        $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
 
         try {
-            $sale->delete();
+            $reason = $request->input('reason') ?? '';
+            $this->saleService->deleteSale($sale, $reason);
 
             return redirect()
                 ->route('sales.index')
-                ->with('success', 'Vente supprimée avec succès.');
+                ->with('success', 'Vente supprimée. Le produit est remis en stock et la suppression est tracée dans l\'historique.');
         } catch (\Exception $e) {
             return redirect()
                 ->back()

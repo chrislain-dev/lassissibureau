@@ -103,23 +103,36 @@ class ProductsTable extends Component
             return collect([]);
         }
 
-        // 2. Récupérer TOUS les comptes de produits en UNE SEULE requête
-        $productsCount = Product::join('product_models', 'products.product_model_id', '=', 'product_models.id')
+        // 2. Récupérer TOUS les comptes de produits et les stats financières en UNE SEULE requête
+        $categoryStats = Product::join('product_models', 'products.product_model_id', '=', 'product_models.id')
             ->whereIn('product_models.category', $categoriesWithModels->keys())
             ->whereNull('products.deleted_at')
             ->whereNull('product_models.deleted_at')
-            ->selectRaw('product_models.category, COUNT(*) as products_count')
+            ->selectRaw('
+                product_models.category, 
+                COUNT(*) as products_count,
+                SUM(CASE WHEN products.state != ? THEN product_models.prix_revient_default ELSE 0 END) as investissement,
+                SUM(CASE WHEN products.state != ? THEN product_models.prix_vente_default ELSE 0 END) as revenu_espere
+            ', [ProductState::VENDU->value, ProductState::VENDU->value])
             ->groupBy('product_models.category')
-            ->pluck('products_count', 'category');
+            ->get()
+            ->keyBy('category');
 
         // 3. Mapper les résultats
-        return $categoriesWithModels->map(function ($modelsCount, $category) use ($productsCount) {
+        return $categoriesWithModels->map(function ($modelsCount, $category) use ($categoryStats) {
+            $stats = $categoryStats[$category] ?? null;
+            $investissement = $stats ? (float) $stats->investissement : 0;
+            $revenu = $stats ? (float) $stats->revenu_espere : 0;
+
             return [
                 'value' => $category,
                 'label' => $this->getCategoryLabel($category),
                 'icon' => $this->getCategoryIcon($category),
                 'models_count' => $modelsCount,
-                'products_count' => $productsCount[$category] ?? 0,
+                'products_count' => $stats ? $stats->products_count : 0,
+                'investissement' => $investissement,
+                'revenu' => $revenu,
+                'benefice' => $revenu - $investissement,
             ];
         })->values();
     }

@@ -26,12 +26,14 @@
                     icon="currency-dollar"
                     color="blue"
                 />
+                @if(auth()->user()->isAdmin())
                 <x-stat-card
                     title="Bénéfice potentiel"
                     :value="number_format($products->sum('benefice_potentiel'), 0, ',', ' ') . ' FCFA'"
                     icon="trending-up"
                     color="green"
                 />
+                @endif
             </div>
 
             @if($products->isEmpty())

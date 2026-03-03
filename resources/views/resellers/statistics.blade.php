@@ -63,6 +63,7 @@
                 <p class="text-xs text-gray-500 mt-1">FCFA</p>
             </div>
 
+            @if(auth()->user()->isAdmin())
             <div class="bg-white border border-gray-200 rounded-lg p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div class="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
@@ -73,6 +74,7 @@
                 <p class="text-2xl font-bold text-emerald-600">+{{ number_format($stats['benefice'], 0, ',', ' ') }}</p>
                 <p class="text-xs text-gray-500 mt-1">FCFA</p>
             </div>
+            @endif
         </div>
 
         {{-- Détail des ventes --}}
@@ -97,9 +99,11 @@
                                 <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Prix de vente
                                 </th>
+                                @if(auth()->user()->isAdmin())
                                 <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Bénéfice
                                 </th>
+                                @endif
                                 <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Statut
                                 </th>
@@ -124,9 +128,11 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-right">
                                         <div class="text-sm font-semibold text-gray-900">{{ number_format($sale->prix_vente, 0, ',', ' ') }} FCFA</div>
                                     </td>
+                                    @if(auth()->user()->isAdmin())
                                     <td class="px-6 py-4 whitespace-nowrap text-right">
                                         <div class="text-sm font-semibold text-green-600">+{{ number_format($sale->benefice, 0, ',', ' ') }} FCFA</div>
                                     </td>
+                                    @endif
                                     <td class="px-6 py-4 whitespace-nowrap text-center">
                                         @if($sale->is_confirmed)
                                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
@@ -149,9 +155,11 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-right">
                                     <div class="text-sm font-bold text-gray-900">{{ number_format($stats['sales_amount'], 0, ',', ' ') }} FCFA</div>
                                 </td>
+                                @if(auth()->user()->isAdmin())
                                 <td class="px-6 py-4 whitespace-nowrap text-right">
                                     <div class="text-sm font-bold text-green-600">+{{ number_format($stats['benefice'], 0, ',', ' ') }} FCFA</div>
                                 </td>
+                                @endif
                                 <td></td>
                             </tr>
                         </tfoot>

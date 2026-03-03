@@ -30,7 +30,9 @@ class StoreProductModelRequest extends FormRequest
             'image_url' => ['nullable', 'url', 'max:500'],
             'prix_revient_default' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
             'prix_vente_default' => ['nullable', 'numeric', 'min:0', 'max:99999999.99', 'gte:prix_revient_default'],
+            'prix_vente_revendeur' => ['nullable', 'numeric', 'min:0', 'max:99999999.99', 'gte:prix_revient_default'],
             'stock_minimum' => ['required', 'integer', 'min:0', 'max:1000'],
+            'condition_type' => ['required', 'string', Rule::in(['neuf', 'venu', 'occasion'])],
             'is_active' => ['boolean'],
         ];
     }
@@ -45,9 +47,11 @@ class StoreProductModelRequest extends FormRequest
             'brand' => 'marque',
             'description' => 'description',
             'category' => 'catégorie',
+            'condition_type' => 'type de boîte',
             'image_url' => 'URL de l\'image',
             'prix_revient_default' => 'prix de revient par défaut',
             'prix_vente_default' => 'prix de vente par défaut',
+            'prix_vente_revendeur' => 'prix de vente revendeur',
             'stock_minimum' => 'stock minimum',
             'is_active' => 'actif',
         ];
@@ -63,7 +67,10 @@ class StoreProductModelRequest extends FormRequest
             'name.unique' => 'Ce modèle existe déjà.',
             'category.required' => 'La catégorie est obligatoire.',
             'category.in' => 'La catégorie doit être "telephone" ou "accessoire".',
-            'prix_vente_default.gte' => 'Le prix de vente doit être supérieur ou égal au prix de revient.',
+            'condition_type.required' => 'Le type de boîte est obligatoire.',
+            'condition_type.in' => 'Le type de boîte doit être "neuf", "venu" ou "occasion".',
+            'prix_vente_default.gte' => 'Le prix de vente client doit être supérieur ou égal au prix de revient.',
+            'prix_vente_revendeur.gte' => 'Le prix de vente revendeur doit être supérieur ou égal au prix de revient.',
             'stock_minimum.required' => 'Le stock minimum est obligatoire.',
         ];
     }

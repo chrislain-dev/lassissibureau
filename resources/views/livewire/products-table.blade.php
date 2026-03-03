@@ -1,7 +1,7 @@
 <div>
     {{-- ÉTAPE 1 : Sélection de la catégorie --}}
     @if($step === 1)
-        <div class="max-w-5xl mx-auto py-6 sm:py-12">
+        <div class="max-w-7xl mx-auto py-6 sm:py-12">
             <div class="text-center mb-8 sm:mb-12 px-4">
                 <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-3">Choisir une catégorie</h2>
                 <p class="text-sm sm:text-base text-gray-600">Sélectionnez une catégorie pour afficher les produits</p>
@@ -18,7 +18,7 @@
                                 <i data-lucide="{{ $category['icon'] }}" class="w-6 h-6 sm:w-8 sm:h-8 text-gray-600 group-hover:text-white transition-colors"></i>
                             </div>
                             <h3 class="text-sm sm:text-lg font-semibold text-gray-900 mb-2">{{ $category['label'] }}</h3>
-                            <div class="flex flex-col sm:items-center gap-1 sm:gap-3 text-xs sm:text-sm text-gray-500">
+                            <div class="flex flex-col sm:items-center gap-1 sm:gap-3 text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">
                                 <span class="flex items-center justify-center gap-1">
                                     <i data-lucide="layers" class="w-3 h-3 sm:w-4 sm:h-4"></i>
                                     {{ $category['models_count'] }} <span class="hidden sm:inline">modèles</span>
@@ -27,6 +27,25 @@
                                     <i data-lucide="package" class="w-3 h-3 sm:w-4 sm:h-4"></i>
                                     {{ $category['products_count'] }} <span class="hidden sm:inline">produits</span>
                                 </span>
+                            </div>
+
+                            <div class="w-full border-t border-gray-100 pt-3 mt-auto">
+                                <div class="grid grid-cols-1 gap-1.5 text-xs text-left">
+                                    <div class="flex justify-between items-center text-gray-600">
+                                        <span>Revenu espéré:</span>
+                                        <span class="font-bold text-gray-900">{{ number_format($category['revenu'], 0, ',', ' ') }} F</span>
+                                    </div>
+                                    @if(auth()->check() && auth()->user()->isAdmin())
+                                    <div class="flex justify-between items-center text-gray-600">
+                                        <span>Investissement:</span>
+                                        <span class="font-medium text-red-600">{{ number_format($category['investissement'], 0, ',', ' ') }} F</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-gray-600">
+                                        <span>Bénéfice espéré:</span>
+                                        <span class="font-bold text-green-600">{{ number_format($category['benefice'], 0, ',', ' ') }} F</span>
+                                    </div>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     </button>

@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
-use App\Enums\ProductLocation;
 use App\Enums\ProductCategory;
+use App\Enums\ProductConditionType;
+use App\Enums\ProductLocation;
 use App\Enums\ProductState;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -21,19 +22,23 @@ class ProductModel extends Model
         'brand',
         'description',
         'category',
+        'condition_type',
         'image_url',
         'prix_revient_default',
         'prix_vente_default',
+        'prix_vente_revendeur',
         'stock_minimum',
         'is_active',
     ];
 
     protected $casts = [
-        'category' => ProductCategory::class,
+        'category'             => ProductCategory::class,
+        'condition_type'       => ProductConditionType::class,
         'prix_revient_default' => 'decimal:2',
-        'prix_vente_default' => 'decimal:2',
-        'stock_minimum' => 'integer',
-        'is_active' => 'boolean',
+        'prix_vente_default'   => 'decimal:2',
+        'prix_vente_revendeur' => 'decimal:2',
+        'stock_minimum'        => 'integer',
+        'is_active'            => 'boolean',
     ];
 
     /**
@@ -176,19 +181,27 @@ class ProductModel extends Model
     }
 
     /**
-     * Valeur totale du stock (prix d'achat)
+     * Valeur totale du stock (prix revient du modèle × quantité)
      */
     public function getStockValueAttribute(): float
     {
-        return (float) $this->productsInStock()->sum('prix_achat');
+        return (float) ($this->prix_revient_default * $this->stock_quantity);
     }
 
     /**
-     * Valeur potentielle de vente du stock
+     * Valeur potentielle de vente du stock (prix client)
      */
     public function getStockSaleValueAttribute(): float
     {
-        return (float) $this->productsInStock()->sum('prix_vente');
+        return (float) ($this->prix_vente_default * $this->stock_quantity);
+    }
+
+    /**
+     * Valeur potentielle de vente revendeur du stock
+     */
+    public function getStockResellerSaleValueAttribute(): float
+    {
+        return (float) (($this->prix_vente_revendeur ?? $this->prix_vente_default) * $this->stock_quantity);
     }
 
     /**
@@ -197,6 +210,14 @@ class ProductModel extends Model
     public function getStockPotentialProfitAttribute(): float
     {
         return $this->stock_sale_value - $this->stock_value;
+    }
+
+    /**
+     * Indique si ce modèle est en condition "occasion"
+     */
+    public function isOccasion(): bool
+    {
+        return $this->condition_type === ProductConditionType::OCCASION;
     }
 
     /**

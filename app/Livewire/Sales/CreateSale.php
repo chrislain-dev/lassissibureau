@@ -72,6 +72,13 @@ class CreateSale extends Component
 
     public function mount(?int $productId = null)
     {
+        // Livewire 3 n'injecte pas automatiquement les query strings dans mount()
+        // On lit manuellement ?productId= ou ?product= depuis l'URL
+        $productId = $productId
+            ?? (int) request()->query('productId')
+            ?: (int) request()->query('product')
+            ?: null;
+
         // Initialiser les dates
         $this->date_depot_revendeur = now()->format('Y-m-d');
         $this->payment_due_date = now()->addDays(30)->format('Y-m-d');
@@ -91,7 +98,9 @@ class CreateSale extends Component
             $this->preselectedProduct = Product::with('productModel')->find($productId);
             if ($this->preselectedProduct) {
                 $this->product_id = $this->preselectedProduct->id;
-                $this->prix_vente = $this->preselectedProduct->prix_vente;
+                $this->prix_vente = $this->buyer_type === 'reseller'
+                    ? $this->preselectedProduct->prix_vente_revendeur
+                    : $this->preselectedProduct->prix_vente;
                 $this->prix_achat_produit = $this->preselectedProduct->prix_achat;
             }
         }
@@ -102,7 +111,9 @@ class CreateSale extends Component
         if ($value) {
             $product = Product::find($value);
             if ($product) {
-                $this->prix_vente = $product->prix_vente;
+                $this->prix_vente = $this->buyer_type === 'reseller'
+                    ? $product->prix_vente_revendeur
+                    : $product->prix_vente;
                 $this->prix_achat_produit = $product->prix_achat;
                 $this->calculateComplement();
             }
@@ -121,6 +132,15 @@ class CreateSale extends Component
     {
         if ($this->buyer_type === 'direct') {
             $this->reseller_confirm_immediate = false;
+        }
+
+        if ($this->product_id) {
+            $product = Product::find($this->product_id);
+            if ($product) {
+                $this->prix_vente = $this->buyer_type === 'reseller'
+                    ? $product->prix_vente_revendeur
+                    : $product->prix_vente;
+            }
         }
 
         if ($this->isImmediateSale()) {

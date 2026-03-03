@@ -82,6 +82,7 @@
                         @error('serial_number') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
 
+                    @if(auth()->user()->isAdmin())
                     <div>
                         <label for="prix_achat" class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
                             Prix d'achat *
@@ -102,6 +103,7 @@
                         <input type="number" wire:model.live="marge_percentage" id="marge_percentage" min="0" max="100" class="block w-full py-2.5 rounded-md border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 text-sm" placeholder="20">
                         @error('marge_percentage') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
+                    @endif
 
                     <div>
                         <label for="prix_vente" class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
@@ -113,7 +115,7 @@
                                 <span class="text-xs text-gray-500 font-medium">FCFA</span>
                             </div>
                         </div>
-                        @if($prix_achat && $prix_vente)
+                        @if(auth()->user()->isAdmin() && $prix_achat && $prix_vente)
                             <p class="mt-1 text-xs text-gray-500">
                                 Bénéfice: <span class="font-semibold text-green-600">+{{ number_format($prix_vente - $prix_achat, 0, ',', ' ') }} FCFA</span>
                             </p>
@@ -131,7 +133,7 @@
 
                     <div>
                         <label for="date_achat" class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                            Date d'achat *
+                            Date d'entrée *
                         </label>
                         <input type="date" wire:model="date_achat" id="date_achat" class="block w-full py-2.5 rounded-md border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 text-sm">
                         @error('date_achat') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror

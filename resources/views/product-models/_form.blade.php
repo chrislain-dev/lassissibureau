@@ -58,29 +58,52 @@
             </div>
         </div>
 
-        <div class="mt-4 sm:mt-6">
-            <x-input-label for="category" value="Catégorie *" class="font-medium text-xs sm:text-sm" />
-            <select
-                name="category"
-                id="category"
-                required
-                class="mt-1.5 sm:mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 text-sm"
-            >
-                <option value="">Sélectionner une catégorie</option>
-                <option value="telephone" {{ old('category', $productModel->category->value ?? '') == 'telephone' ? 'selected' : '' }}>
-                    📱 Téléphone
-                </option>
-                <option value="tablette" {{ old('category', $productModel->category->value ?? '') == 'tablette' ? 'selected' : '' }}>
-                    💻 Tablette
-                </option>
-                <option value="pc" {{ old('category', $productModel->category->value ?? '') == 'pc' ? 'selected' : '' }}>
-                    🖥️ Ordinateur
-                </option>
-                <option value="accessoire" {{ old('category', $productModel->category->value ?? '') == 'accessoire' ? 'selected' : '' }}>
-                    🎧 Accessoire
-                </option>
-            </select>
-            <x-input-error :messages="$errors->get('category')" class="mt-1.5 sm:mt-2" />
+        <div class="mt-4 sm:mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            <div>
+                <x-input-label for="category" value="Catégorie *" class="font-medium text-xs sm:text-sm" />
+                <select
+                    name="category"
+                    id="category"
+                    required
+                    class="mt-1.5 sm:mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 text-sm"
+                >
+                    <option value="">Sélectionner une catégorie</option>
+                    <option value="telephone" {{ old('category', $productModel->category->value ?? '') == 'telephone' ? 'selected' : '' }}>
+                        📱 Téléphone
+                    </option>
+                    <option value="tablette" {{ old('category', $productModel->category->value ?? '') == 'tablette' ? 'selected' : '' }}>
+                        💻 Tablette
+                    </option>
+                    <option value="pc" {{ old('category', $productModel->category->value ?? '') == 'pc' ? 'selected' : '' }}>
+                        🖥️ Ordinateur
+                    </option>
+                    <option value="accessoire" {{ old('category', $productModel->category->value ?? '') == 'accessoire' ? 'selected' : '' }}>
+                        🎧 Accessoire
+                    </option>
+                </select>
+                <x-input-error :messages="$errors->get('category')" class="mt-1.5 sm:mt-2" />
+            </div>
+
+            <div>
+                <x-input-label for="condition_type" value="État du produit *" class="font-medium text-xs sm:text-sm" />
+                <select
+                    name="condition_type"
+                    id="condition_type"
+                    required
+                    class="mt-1.5 sm:mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 text-sm"
+                >
+                    <option value="neuf" {{ old('condition_type', $productModel->condition_type->value ?? 'neuf') == 'neuf' ? 'selected' : '' }}>
+                        ✨ Neuf
+                    </option>
+                    <option value="venu" {{ old('condition_type', $productModel->condition_type->value ?? '') == 'venu' ? 'selected' : '' }}>
+                        📦 Venu
+                    </option>
+                    <option value="occasion" {{ old('condition_type', $productModel->condition_type->value ?? '') == 'occasion' ? 'selected' : '' }}>
+                        ♻️ Occasion
+                    </option>
+                </select>
+                <x-input-error :messages="$errors->get('condition_type')" class="mt-1.5 sm:mt-2" />
+            </div>
         </div>
 
         <div class="mt-4 sm:mt-6">
@@ -149,6 +172,28 @@
                 </div>
                 <p class="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-500">Prix proposé aux clients</p>
                 <x-input-error :messages="$errors->get('prix_vente_default')" class="mt-1.5 sm:mt-2" />
+            </div>
+
+            <div>
+                <x-input-label for="prix_vente_revendeur" value="Prix revendeur *" class="font-medium text-xs sm:text-sm" />
+                <div class="relative mt-1.5 sm:mt-2">
+                    <x-text-input
+                        type="number"
+                        name="prix_vente_revendeur"
+                        id="prix_vente_revendeur"
+                        :value="old('prix_vente_revendeur', $productModel->prix_vente_revendeur ?? '')"
+                        class="block w-full pr-14 sm:pr-16 text-sm"
+                        min="0"
+                        step="100"
+                        placeholder="0"
+                        required
+                    />
+                    <div class="absolute inset-y-0 right-0 pr-2 sm:pr-3 flex items-center pointer-events-none">
+                        <span class="text-gray-500 text-xs sm:text-sm font-medium">FCFA</span>
+                    </div>
+                </div>
+                <p class="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-500">Prix proposé aux partenaires revedeurs</p>
+                <x-input-error :messages="$errors->get('prix_vente_revendeur')" class="mt-1.5 sm:mt-2" />
             </div>
         </div>
 

@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Enums\CustomerReturnStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -19,13 +21,17 @@ class CustomerReturn extends Model
         'exchange_sale_id',
         'reason',
         'defect_description',
+        'repair_notes',
         'is_exchange',
         'refund_amount',
+        'status',
+        'supplier_return_id',
         'processed_by',
     ];
 
     protected $casts = [
-        'is_exchange' => 'boolean',
+        'status'        => CustomerReturnStatus::class,
+        'is_exchange'   => 'boolean',
         'refund_amount' => 'decimal:2',
     ];
 
@@ -79,6 +85,29 @@ class CustomerReturn extends Model
         return $this->belongsTo(User::class, 'processed_by');
     }
 
+    /**
+     * Retour fournisseur associé
+     */
+    public function supplierReturn(): HasOne
+    {
+        return $this->hasOne(SupplierReturn::class);
+    }
+
+    /**
+     * Vérifier si un retour fournisseur a été créé
+     */
+    public function hasSupplierReturn(): bool
+    {
+        return $this->supplierReturn()->exists();
+    }
+
+    /**
+     * Vérifier si le workflow est terminé
+     */
+    public function isClosed(): bool
+    {
+        return $this->status?->isFinal() ?? false;
+    }
     /**
      * Vérifier si c'est un échange (pas un remboursement)
      */

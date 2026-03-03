@@ -48,35 +48,6 @@ class ProductService
     }
 
     /**
-     * Mettre à jour les prix d'un produit.
-     */
-    public function updatePrices(Product $product, float $prixAchat, float $prixVente, int $userId): Product
-    {
-        $oldPrixAchat = $product->prix_achat;
-        $oldPrixVente = $product->prix_vente;
-
-        $product->update([
-            'prix_achat' => $prixAchat,
-            'prix_vente' => $prixVente,
-            'updated_by' => $userId,
-        ]);
-
-        // Log l'activité
-        activity()
-            ->performedOn($product)
-            ->causedBy($userId)
-            ->withProperties([
-                'old_prix_achat' => $oldPrixAchat,
-                'new_prix_achat' => $prixAchat,
-                'old_prix_vente' => $oldPrixVente,
-                'new_prix_vente' => $prixVente,
-            ])
-            ->log('Prix mis à jour');
-
-        return $product->fresh();
-    }
-
-    /**
      * Changer l'état et/ou la localisation d'un produit avec mouvement de stock.
      */
     public function changeStateAndLocation(

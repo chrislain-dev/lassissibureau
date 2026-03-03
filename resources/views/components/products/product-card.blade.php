@@ -41,14 +41,17 @@
                 </span>
             </div>
 
-            @if($product->benefice_potentiel > 0)
-                <div class="flex items-center justify-between text-xs">
-                    <span class="text-gray-500">Bénéfice potentiel</span>
-                    <span class="font-semibold text-green-600">
-                        +{{ number_format($product->benefice_potentiel, 0, ',', ' ') }} FCFA
-                    </span>
-                </div>
-            @endif
+            <div class="mt-4 flex flex-col gap-2">
+                @if(auth()->user()->isAdmin() && $product->benefice_potentiel > 0)
+                    <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-green-50 text-green-700 text-xs font-semibold w-fit">
+                        <i data-lucide="trending-up" class="w-3.5 h-3.5"></i>
+                        Bénéfice espéré:
+                        <span class="font-bold">
+                            +{{ number_format($product->benefice_potentiel, 0, ',', ' ') }} FCFA
+                        </span>
+                    </div>
+                @endif
+            </div>
         </div>
 
         {{-- Actions --}}

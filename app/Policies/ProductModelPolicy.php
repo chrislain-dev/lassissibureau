@@ -12,6 +12,7 @@ class ProductModelPolicy
      */
     public function viewAny(User $user): bool
     {
+        if ($user->isVendeur()) return false;
         return $user->can('products.view');
     }
 
@@ -20,6 +21,7 @@ class ProductModelPolicy
      */
     public function view(User $user, ProductModel $productModel): bool
     {
+        if ($user->isVendeur()) return false;
         return $user->can('products.view');
     }
 
@@ -28,6 +30,7 @@ class ProductModelPolicy
      */
     public function create(User $user): bool
     {
+        if ($user->isVendeur()) return false;
         return $user->can('products.create');
     }
 
@@ -36,6 +39,7 @@ class ProductModelPolicy
      */
     public function update(User $user, ProductModel $productModel): bool
     {
+        if ($user->isVendeur()) return false;
         return $user->can('products.edit');
     }
 
@@ -44,6 +48,7 @@ class ProductModelPolicy
      */
     public function delete(User $user, ProductModel $productModel): bool
     {
+        if ($user->isVendeur()) return false;
         // Ne peut supprimer que si aucun produit n'utilise ce modèle
         if ($productModel->products()->count() > 0) {
             return false;
@@ -57,6 +62,7 @@ class ProductModelPolicy
      */
     public function restore(User $user, ProductModel $productModel): bool
     {
+        if ($user->isVendeur()) return false;
         return $user->can('products.edit');
     }
 

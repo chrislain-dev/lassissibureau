@@ -13,16 +13,18 @@ enum ProductState: string
     case REPARE = 'repare';
     case RETOUR = 'retour';
     case PERDU = 'perdu';
+    case RETOUR_FOURNISSEUR = 'retour_fournisseur';
 
     public function label(): string
     {
         return match ($this) {
-            self::DISPONIBLE => 'Disponible',
-            self::VENDU => 'Vendu',
-            self::A_REPARER => 'À réparer',
-            self::REPARE => 'Réparé',
-            self::RETOUR => 'Retour',
-            self::PERDU => 'Perdu',
+            self::DISPONIBLE         => 'Disponible',
+            self::VENDU              => 'Vendu',
+            self::A_REPARER          => 'À réparer',
+            self::REPARE             => 'Réparé',
+            self::RETOUR             => 'Retour',
+            self::PERDU              => 'Perdu',
+            self::RETOUR_FOURNISSEUR => 'Retour fournisseur',
         };
     }
 

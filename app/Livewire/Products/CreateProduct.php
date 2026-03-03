@@ -20,9 +20,6 @@ class CreateProduct extends Component
     
     public $state = 'disponible';
     public $location = 'boutique';
-    
-    public $prix_achat = null;
-    public $prix_vente = null;
     public $condition = null;
     
     public $date_achat;
@@ -121,8 +118,6 @@ class CreateProduct extends Component
             'product_model_id' => $baseRules['product_model_id'],
             'state' => $baseRules['state'],
             'location' => $baseRules['location'],
-            'prix_achat' => $baseRules['prix_achat'],
-            'prix_vente' => $baseRules['prix_vente'],
             'condition' => ['nullable', 'string', 'in:' . implode(',', $this->conditions)],
             'date_achat' => $baseRules['date_achat'],
             'fournisseur' => $baseRules['fournisseur'],
@@ -185,8 +180,6 @@ class CreateProduct extends Component
                             'serial_number' => $productData['serial_number'] ?? null,
                             'state' => $this->state,
                             'location' => $this->location,
-                            'prix_achat' => $this->prix_achat,
-                            'prix_vente' => $this->prix_vente,
                             'condition' => $this->condition ?: null,
                             'date_achat' => $this->date_achat ?: null,
                             'fournisseur' => $this->fournisseur ?: null,

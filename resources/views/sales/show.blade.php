@@ -4,28 +4,34 @@
     </x-slot>
 
     <x-slot name="actions">
-        <div class="flex gap-3">
-            <a href="{{ route('sales.index') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-md font-medium text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+        <div class="flex gap-2 flex-wrap">
+            <a href="{{ route('sales.index') }}" class="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
                 <i data-lucide="arrow-left" class="w-4 h-4"></i>
                 Retour
             </a>
 
             @if(!$sale->is_confirmed && $sale->reseller_id)
-                {{-- Bouton Retour Stock (Nouveau) --}}
                 @can('returnFromReseller', $sale)
-                    <button onclick="document.getElementById('return-modal').classList.remove('hidden')" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 border border-red-600 rounded-md font-medium text-sm text-white hover:bg-red-700 transition-colors">
+                    <button @click="$dispatch('open-modal-return-sale')" class="inline-flex items-center gap-2 px-3 py-2 bg-orange-600 rounded-lg text-sm font-medium text-white hover:bg-orange-700 transition-colors">
                         <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
-                        Retourner au stock
+                        Retour stock
                     </button>
                 @endcan
 
                 @can('confirm', $sale)
-                    <button onclick="document.getElementById('confirm-modal').classList.remove('hidden')" class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 border border-green-600 rounded-md font-medium text-sm text-white hover:bg-green-700 transition-colors">
+                    <button @click="$dispatch('open-modal-confirm-sale')" class="inline-flex items-center gap-2 px-3 py-2 bg-emerald-600 rounded-lg text-sm font-medium text-white hover:bg-emerald-700 transition-colors">
                         <i data-lucide="check-circle" class="w-4 h-4"></i>
-                        Confirmer la vente
+                        Confirmer
                     </button>
                 @endcan
             @endif
+
+            @can('delete', $sale)
+                <button @click="$dispatch('open-modal-delete-sale')" class="inline-flex items-center gap-2 px-3 py-2 bg-red-600 rounded-lg text-sm font-medium text-white hover:bg-red-700 transition-colors">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    Supprimer
+                </button>
+            @endcan
         </div>
     </x-slot>
 
@@ -280,26 +286,74 @@
             @endif
         </div>
 
-        {{-- Sidebar --}}
-        <div class="space-y-6">
-            {{-- Prix et montants --}}
-            <div class="bg-white border border-gray-200 rounded-lg p-6">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center">
-                        <i data-lucide="coins" class="w-5 h-5 text-white"></i>
+            {{-- Paiements --}}
+            @if($sale->payments->isNotEmpty())
+                <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                    <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
+                        <div class="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
+                            <i data-lucide="banknote" class="w-4 h-4 text-white"></i>
+                        </div>
+                        <h3 class="text-sm font-semibold text-gray-900">Historique des paiements</h3>
+                        <span class="ml-auto text-xs bg-gray-100 text-gray-600 font-medium px-2 py-1 rounded-full">{{ $sale->payments->count() }}</span>
                     </div>
-                    <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wide">Montants</h3>
-                </div>
+                    <div class="p-4 space-y-3">
+                        @foreach($sale->payments as $payment)
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-bold text-gray-900">{{ number_format($payment->amount, 0, ',', ' ') }} FCFA</p>
+                                        <p class="text-xs text-gray-500">
+                                            {{ $payment->payment_method->label() }}
+                                            @if($payment->reference) · <span class="font-mono">{{ $payment->reference }}</span> @endif
+                                        </p>
+                                        @if($payment->notes)
+                                            <p class="text-xs text-gray-400 italic">{{ $payment->notes }}</p>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xs font-medium text-gray-700">{{ $payment->payment_date->format('d/m/Y') }}</p>
+                                    <p class="text-xs text-gray-400">{{ $payment->created_at->format('H:i') }}</p>
+                                    <p class="text-xs text-gray-400 mt-0.5">{{ $payment->recorder->name ?? 'Système' }}</p>
+                                </div>
+                            </div>
+                        @endforeach
 
-                <dl class="space-y-4">
-                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Prix de vente</dt>
-                        <dd class="text-2xl font-bold text-gray-900">{{ number_format($sale->prix_vente, 0, ',', ' ') }}</dd>
-                        <span class="text-xs text-gray-500">FCFA</span>
+                        {{-- Total payé --}}
+                        <div class="flex items-center justify-between pt-3 border-t border-gray-200">
+                            <span class="text-sm font-semibold text-gray-700">Total payé</span>
+                            <span class="text-sm font-bold text-emerald-600">{{ number_format($sale->amount_paid, 0, ',', ' ') }} FCFA</span>
+                        </div>
+                        @if($sale->amount_remaining > 0)
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm font-semibold text-gray-700">Reste dû</span>
+                                <span class="text-sm font-bold text-red-600">{{ number_format($sale->amount_remaining, 0, ',', ' ') }} FCFA</span>
+                            </div>
+                            @if($sale->payment_due_date)
+                                <p class="text-xs text-gray-500 text-right">
+                                    Échéance : {{ $sale->payment_due_date->format('d/m/Y') }}
+                                    @if($sale->payment_due_date->isPast()) <span class="text-red-500 font-medium">(dépassée)</span> @endif
+                                </p>
+                            @endif
+                        @endif
+                    </div>
+                </div>
+            @endif
+
+            {{-- Prix et montants (sidebar existante) --}}
+            <div class="bg-white border border-gray-200 rounded-xl p-5">
+                <h3 class="text-sm font-semibold text-gray-900 mb-4">Récapitulatif financier</h3>
+                <dl class="space-y-3">
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                        <dt class="text-xs text-gray-500 uppercase tracking-wide mb-1">Prix de vente</dt>
+                        <dd class="text-2xl font-bold text-gray-900">{{ number_format($sale->prix_vente, 0, ',', ' ') }} <span class="text-xs font-normal text-gray-500">FCFA</span></dd>
                     </div>
 
                     @if($sale->hasTradeIn() && $sale->tradeIn)
-                        <div class="p-4 bg-red-50 border border-red-200 rounded-lg space-y-2">
+                        <div class="p-3 bg-red-50 border border-red-200 rounded-lg space-y-2">
                             <div class="flex justify-between items-center">
                                 <span class="text-xs text-red-700 uppercase tracking-wide">Valeur reprise</span>
                                 <span class="text-sm font-semibold text-red-700">{{ number_format($sale->tradeIn->valeur_reprise, 0, ',', ' ') }} FCFA</span>
@@ -312,15 +366,12 @@
                     @endif
 
                     @if(auth()->user()->hasRole('admin'))
-                        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                            <dt class="text-xs font-medium text-green-700 uppercase tracking-wide mb-1 flex items-center gap-1">
-                                <i data-lucide="trending-up" class="w-3 h-3"></i>
-                                Bénéfice
+                        <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                            <dt class="text-xs font-medium text-emerald-700 uppercase tracking-wide mb-1 flex items-center gap-1">
+                                <i data-lucide="trending-up" class="w-3 h-3"></i> Bénéfice
                             </dt>
-                            <dd class="text-2xl font-bold text-green-600">+{{ number_format($sale->benefice, 0, ',', ' ') }}</dd>
-                            <span class="text-xs text-green-600">FCFA</span>
+                            <dd class="text-2xl font-bold text-emerald-600">+{{ number_format($sale->benefice, 0, ',', ' ') }} <span class="text-xs font-normal">FCFA</span></dd>
                         </div>
-
                         <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                             <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Marge</span>
                             <span class="text-lg font-bold text-gray-900">{{ $sale->marge_percentage }}%</span>
@@ -328,80 +379,119 @@
                     @endif
                 </dl>
             </div>
-        </div>
     </div>
 
-    {{-- Modal de confirmation --}}
+    {{-- Modals Alpine.js --}}
     @if(!$sale->is_confirmed && $sale->reseller_id)
-        <div id="confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-            <div class="bg-white rounded-lg max-w-md w-full mx-4">
-                <form method="POST" action="{{ route('sales.confirm', $sale) }}">
-                    @csrf
-                    <div class="p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Confirmer la vente</h3>
-                        <p class="text-sm text-gray-600 mb-4">
-                            Confirmer que cette vente a bien été effectuée par le revendeur ?
-                        </p>
-
-                        <div>
-                            <label for="notes" class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                                Notes (optionnel)
-                            </label>
-                            <textarea name="notes" id="notes" rows="3" class="block w-full py-2.5 rounded-md border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 text-sm"></textarea>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-lg">
-                        <button type="button" onclick="document.getElementById('confirm-modal').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900">
-                            Annuler
+        {{-- Modal Confirmation vente --}}
+        @can('confirm', $sale)
+            <x-confirm-modal
+                id="confirm-sale"
+                title="Confirmer cette vente ?"
+                message="Confirmez que cette vente a bien été effectuée par le revendeur."
+                :danger="false"
+            >
+                <x-slot name="form">
+                    <form method="POST" action="{{ route('sales.confirm', $sale) }}">
+                        @csrf
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">
+                            Confirmer la vente
                         </button>
-                        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors">
-                            <i data-lucide="check-circle" class="w-4 h-4"></i>
-                            Confirmer
-                        </button>
+                    </form>
+                </x-slot>
+            </x-confirm-modal>
+        @endcan
+
+        {{-- Modal Retour stock --}}
+        @can('returnFromReseller', $sale)
+            <div
+                x-data="{ open: false }"
+                x-on:open-modal-return-sale.window="open = true"
+                x-show="open"
+                x-cloak
+                class="fixed inset-0 z-50"
+            >
+                <div x-show="open" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm" @click="open = false"></div>
+                <div class="fixed inset-0 flex items-center justify-center p-4 z-10">
+                    <div x-show="open"
+                        x-transition:enter="ease-out duration-200"
+                        x-transition:enter-start="opacity-0 scale-95"
+                        x-transition:enter-end="opacity-100 scale-100"
+                        class="bg-white rounded-xl shadow-2xl w-full max-w-md border border-gray-100">
+                        <form method="POST" action="{{ route('sales.return', $sale) }}">
+                            @csrf
+                            <div class="p-6">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                                        <i data-lucide="rotate-ccw" class="w-5 h-5 text-orange-600"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-base font-semibold text-gray-900">Retourner au stock</h3>
+                                        <p class="text-sm text-gray-500">Cela annulera la vente et remettra le produit en stock.</p>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="reason" class="block text-xs font-medium text-gray-700 mb-1.5">Motif du retour *</label>
+                                    <textarea name="reason" id="reason" rows="3" required minlength="10" placeholder="Ex: Produit non vendu par le revendeur..." class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 text-sm"></textarea>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-100 rounded-b-xl">
+                                <button type="button" @click="open = false" class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900">Annuler</button>
+                                <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg transition-colors">
+                                    <i data-lucide="check" class="w-4 h-4"></i> Valider le retour
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                </form>
+                </div>
             </div>
-        </div>
+        @endcan
     @endif
 
-
-    {{-- Modal de retour (Nouveau) --}}
-    @if(!$sale->is_confirmed && $sale->reseller_id)
-        <div id="return-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-            <div class="bg-white rounded-lg max-w-md w-full mx-4">
-                <form method="POST" action="{{ route('sales.return', $sale) }}">
-                    @csrf
-                    <div class="p-6">
-                        <div class="flex items-center gap-3 mb-4 text-red-600">
-                            <i data-lucide="rotate-ccw" class="w-6 h-6"></i>
-                            <h3 class="text-lg font-semibold text-gray-900">Retourner au stock</h3>
+    {{-- Modal Supprimer vente --}}
+    @can('delete', $sale)
+        <div
+            x-data="{ open: false }"
+            x-on:open-modal-delete-sale.window="open = true"
+            x-show="open"
+            x-cloak
+            class="fixed inset-0 z-50"
+        >
+            <div x-show="open" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm" @click="open = false"></div>
+            <div class="fixed inset-0 flex items-center justify-center p-4 z-10">
+                <div x-show="open"
+                    x-transition:enter="ease-out duration-200"
+                    x-transition:enter-start="opacity-0 scale-95"
+                    x-transition:enter-end="opacity-100 scale-100"
+                    class="bg-white rounded-xl shadow-2xl w-full max-w-md border border-gray-100">
+                    <form method="POST" action="{{ route('sales.destroy', $sale) }}">
+                        @csrf
+                        @method('DELETE')
+                        <div class="p-6">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                                    <i data-lucide="alert-triangle" class="w-5 h-5 text-red-600"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-semibold text-gray-900">Supprimer cette vente ?</h3>
+                                    <p class="text-sm text-gray-500">La vente #{{ $sale->id }} sera supprimée et le produit retournera en stock.</p>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="delete_reason" class="block text-xs font-medium text-gray-700 mb-1.5">Motif de suppression (optionnel)</label>
+                                <textarea name="reason" id="delete_reason" rows="3" placeholder="Ex: Erreur de saisie, client a changé d'avis..." class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 text-sm"></textarea>
+                            </div>
                         </div>
-                        
-                        <p class="text-sm text-gray-600 mb-4">
-                            Cela annulera la vente et remettra le produit en stock.
-                            Utilisez cette option si le revendeur n'a pas vendu le produit et le rapporte.
-                        </p>
-
-                        <div>
-                            <label for="reason" class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                                Motif du retour *
-                            </label>
-                            <textarea name="reason" id="reason" rows="3" required minlength="10" placeholder="Ex: Produit non vendu par le revendeur..." class="block w-full py-2.5 rounded-md border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 text-sm"></textarea>
+                        <div class="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-100 rounded-b-xl">
+                            <button type="button" @click="open = false" class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900">Annuler</button>
+                            <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i> Supprimer définitivement
+                            </button>
                         </div>
-                    </div>
-
-                    <div class="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-lg">
-                        <button type="button" onclick="document.getElementById('return-modal').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900">
-                            Annuler
-                        </button>
-                        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors">
-                            <i data-lucide="check" class="w-4 h-4"></i>
-                            Valider le retour
-                        </button>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
-    @endif
+    @endcan
+
 </x-app-layout>

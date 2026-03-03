@@ -127,103 +127,6 @@
                                 @enderror
                             </div>
                         </div>
-                    </div>
-
-                    {{-- Prix --}}
-                    <div class="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
-                        <div class="flex items-center gap-3 mb-4 sm:mb-6">
-                            <div class="w-10 h-10 bg-gradient-to-br from-gray-900 to-gray-700 rounded-lg flex items-center justify-center shadow-sm">
-                                <i data-lucide="coins" class="w-5 h-5 text-white"></i>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wide truncate">Tarification</h3>
-                                <p class="text-xs text-gray-500 truncate">Prix d'achat et de vente</p>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                            <div>
-                                <label for="prix_achat" class="block text-xs font-medium text-gray-700 mb-2">
-                                    Prix d'achat <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <input
-                                        type="number"
-                                        wire:model.live="prix_achat"
-                                        id="prix_achat"
-                                        class="block w-full py-2.5 pl-3 pr-16 rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 text-sm transition-all duration-200"
-                                        min="0"
-                                        step="1"
-                                        required
-                                    />
-                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                        <span class="text-xs text-gray-500 font-medium">FCFA</span>
-                                    </div>
-                                </div>
-                                @error('prix_achat')
-                                    <p class="mt-2 text-sm text-red-600 flex items-center gap-1">
-                                        <i data-lucide="alert-circle" class="w-3 h-3"></i>
-                                        {{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
-
-                            <div>
-                                <label for="prix_vente" class="block text-xs font-medium text-gray-700 mb-2">
-                                    Prix de vente <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <input
-                                        type="number"
-                                        wire:model.live="prix_vente"
-                                        id="prix_vente"
-                                        class="block w-full py-2.5 pl-3 pr-16 rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 text-sm transition-all duration-200"
-                                        min="0"
-                                        step="1"
-                                        required
-                                    />
-                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                        <span class="text-xs text-gray-500 font-medium">FCFA</span>
-                                    </div>
-                                </div>
-                                @error('prix_vente')
-                                    <p class="mt-2 text-sm text-red-600 flex items-center gap-1">
-                                        <i data-lucide="alert-circle" class="w-3 h-3"></i>
-                                        {{ $message }}
-                                    </p>
-                                @enderror
-                                <p class="mt-1.5 text-xs text-gray-500">Doit être ≥ au prix d'achat</p>
-                            </div>
-                        </div>
-
-                        {{-- Aperçu de la marge --}}
-                        @if($prix_achat && $prix_vente && $prix_achat > 0 && $prix_vente > 0)
-                            @php
-                                $benefice = $prix_vente - $prix_achat;
-                                $marge = (($benefice / $prix_vente) * 100);
-                                $roi = (($benefice / $prix_achat) * 100);
-                                $margeColor = $marge >= 30 ? 'text-green-600' : ($marge >= 15 ? 'text-yellow-600' : 'text-gray-900');
-                            @endphp
-
-                            <div class="mt-4 sm:mt-6 p-4 bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-lg border border-gray-200">
-                                <div class="grid grid-cols-3 gap-2 sm:gap-4 text-center">
-                                    <div>
-                                        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Bénéfice</p>
-                                        <p class="text-base sm:text-lg font-bold text-gray-900 truncate">{{ number_format($benefice, 0, ',', ' ') }} <span class="text-xs font-normal">FCFA</span></p>
-                                    </div>
-                                    <div>
-                                        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Marge</p>
-                                        <p class="text-base sm:text-lg font-bold {{ $margeColor }}">{{ number_format($marge, 2) }}%</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">ROI</p>
-                                        <p class="text-base sm:text-lg font-bold text-gray-900">{{ number_format($roi, 2) }}%</p>
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
-                    </div>
-
                     {{-- Détails complémentaires --}}
                     <div class="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
                         <div class="flex items-center gap-3 mb-4 sm:mb-6">
@@ -260,7 +163,7 @@
 
                             <div>
                                 <label for="date_achat" class="block text-xs font-medium text-gray-700 mb-2">
-                                    Date d'achat
+                                    Date d'entrée
                                 </label>
                                 <input
                                     type="date"

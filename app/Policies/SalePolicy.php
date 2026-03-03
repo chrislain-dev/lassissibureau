@@ -45,9 +45,9 @@ class SalePolicy
             return false;
         }
 
-        // Les vendeurs ne peuvent modifier que leurs propres ventes
+        // Le vendeur peut modifier toute vente non confirmée
         if ($user->isVendeur()) {
-            return $sale->sold_by === $user->id && $user->can('sales.edit');
+            return true;
         }
 
         return $user->can('sales.edit');
@@ -55,16 +55,16 @@ class SalePolicy
 
     /**
      * Determine whether the user can delete the model.
+     * ✅ Admin et Vendeur peuvent tout supprimer
      */
     public function delete(User $user, Sale $sale): bool
     {
-        // Ne peut pas supprimer une vente confirmée
-        if ($sale->is_confirmed) {
-            return false;
+        // Admin et Vendeur ont tous les droits de suppression sur les ventes
+        if ($user->isAdmin() || $user->isVendeur()) {
+            return true;
         }
 
-        // Seul l'admin peut supprimer des ventes
-        return $user->isAdmin() && $user->can('sales.delete');
+        return false;
     }
 
     /**
@@ -72,7 +72,7 @@ class SalePolicy
      */
     public function restore(User $user, Sale $sale): bool
     {
-        return $user->isAdmin();
+        return $user->isAdmin() || $user->isVendeur();
     }
 
     /**
@@ -80,7 +80,7 @@ class SalePolicy
      */
     public function forceDelete(User $user, Sale $sale): bool
     {
-        return $user->isAdmin() && ! $sale->is_confirmed;
+        return ($user->isAdmin() || $user->isVendeur()) && ! $sale->is_confirmed;
     }
 
     /**
@@ -88,8 +88,8 @@ class SalePolicy
      */
     public function confirm(User $user, Sale $sale): bool
     {
-        // Seul l'admin peut confirmer les ventes revendeurs
-        if (! $user->isAdmin()) {
+        // L'admin et le vendeur peuvent confirmer les ventes revendeurs
+        if (! $user->isAdmin() && ! $user->isVendeur()) {
             return false;
         }
 
@@ -111,7 +111,7 @@ class SalePolicy
      */
     public function export(User $user): bool
     {
-        return $user->isAdmin();
+        return $user->isAdmin() || $user->isVendeur();
     }
 
     /**
@@ -124,7 +124,7 @@ class SalePolicy
             return false;
         }
 
-        return $user->can('returns.manage');
+        return $user->can('returns.manage') || $user->isVendeur();
     }
 
     /**
@@ -132,7 +132,7 @@ class SalePolicy
      */
     public function returnFromReseller(User $user, Sale $sale): bool
     {
-        return $user->isAdmin();
+        return $user->isAdmin() || $user->isVendeur();
     }
 
     /**
@@ -140,6 +140,6 @@ class SalePolicy
      */
     public function viewPending(User $user): bool
     {
-        return $user->isAdmin();
+        return $user->isAdmin() || $user->isVendeur();
     }
 }

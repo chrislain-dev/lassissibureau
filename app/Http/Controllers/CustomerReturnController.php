@@ -99,16 +99,17 @@ class CustomerReturnController extends Controller
 
                 // Créer une nouvelle vente pour le produit d'échange
                 $newSale = $this->saleService->createSale([
-                    'product_id' => $exchangeProduct->id,
-                    'sale_type' => $customerReturn->originalSale->sale_type,
-                    'prix_vente' => $exchangeProduct->prix_vente,
-                    'prix_achat_produit' => $exchangeProduct->prix_achat,
-                    'client_name' => $customerReturn->originalSale->client_name,
-                    'client_phone' => $customerReturn->originalSale->client_phone,
-                    'date_vente_effective' => now()->format('Y-m-d'),
-                    'is_confirmed' => true,
-                    'sold_by' => $validated['processed_by'],
-                    'notes' => 'Échange suite retour - Retour original: #'.$customerReturn->original_sale_id,
+                    'product_id'            => $exchangeProduct->id,
+                    'sale_type'             => $customerReturn->originalSale->sale_type,
+                    'client_name'           => $customerReturn->originalSale->client_name,
+                    'client_phone'          => $customerReturn->originalSale->client_phone,
+                    'date_vente_effective'  => now()->format('Y-m-d'),
+                    'is_confirmed'          => true,
+                    'payment_status'        => 'paid',
+                    'payment_method'        => 'cash',
+                    'amount_paid'           => $exchangeProduct->prix_vente,
+                    'sold_by'               => $validated['processed_by'],
+                    'notes'                 => 'Échange suite retour - Retour original: #'.$customerReturn->original_sale_id,
                 ]);
 
                 $customerReturn->update(['exchange_sale_id' => $newSale->id]);

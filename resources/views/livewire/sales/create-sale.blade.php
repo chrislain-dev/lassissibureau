@@ -202,7 +202,7 @@
                                 Combien il paie maintenant *
                             </label>
                             <div class="relative">
-                                <input wire:model="amount_paid" type="number" id="amount_paid" min="0" step="0.01" class="block w-full py-2.5 pr-16 rounded-md border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 text-sm" placeholder="0">
+                                <input wire:model="amount_paid" type="number" id="amount_paid" min="0" step="1000" class="block w-full py-2.5 pr-16 rounded-md border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 text-sm" placeholder="0">
                                 <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                                     <span class="text-xs text-gray-500 font-medium">FCFA</span>
                                 </div>
@@ -292,6 +292,20 @@
                     @error('client_phone') <span class="mt-2 text-sm text-red-600">{{ $message }}</span> @enderror
                 </div>
             </div>
+
+            @if($buyer_type === 'direct')
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <label for="direct_payment_method" class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                        Comment il paie *
+                    </label>
+                    <select wire:model="payment_method" id="direct_payment_method" class="block w-full md:w-1/2 py-2.5 rounded-md border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 text-sm">
+                        <option value="cash">Argent liquide</option>
+                        <option value="mobile_money">Mobile Money</option>
+                        <option value="bank_transfer">Virement bancaire</option>
+                        <option value="check">Chèque</option>
+                    </select>
+                </div>
+            @endif
         </div>
 
         {{-- Section Troc --}}

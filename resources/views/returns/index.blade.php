@@ -34,6 +34,7 @@
                             <th scope="col" class="px-4 xl:px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Produit Retourné</th>
                             <th scope="col" class="px-4 xl:px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Client</th>
                             <th scope="col" class="px-4 xl:px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Motif</th>
+                            <th scope="col" class="px-4 xl:px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Statut</th>
                             <th scope="col" class="px-4 xl:px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
                         </tr>
                     </thead>
@@ -68,6 +69,11 @@
                                 <td class="px-4 xl:px-6 py-4">
                                     <span class="text-sm text-gray-500 line-clamp-2 max-w-xs" title="{{ $return->reason }}">
                                         {{ $return->reason }}
+                                    </span>
+                                </td>
+                                <td class="px-4 xl:px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border {{ $return->status->badgeClasses() ?? 'bg-amber-100 text-amber-800 border-amber-200' }}">
+                                        {{ $return->status->label() ?? 'En attente' }}
                                     </span>
                                 </td>
                                 <td class="px-4 xl:px-6 py-4 whitespace-nowrap text-right">
@@ -124,6 +130,9 @@
                                 <span class="hidden sm:inline">Remb.</span>
                             </span>
                         @endif
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border {{ $return->status->badgeClasses() ?? 'bg-amber-100 text-amber-800 border-amber-200' }} flex-shrink-0">
+                            {{ $return->status->label() ?? 'En attente' }}
+                        </span>
                     </div>
 
                     {{-- Info --}}

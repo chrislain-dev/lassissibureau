@@ -20,11 +20,15 @@ class TradeIn extends Model
         'imei_recu',
         'modele_recu',
         'etat_recu',
+        'needs_repair',
+        'repair_notes',
+        'repair_status',
     ];
 
     protected $casts = [
-        'valeur_reprise' => 'decimal:2',
+        'valeur_reprise'    => 'decimal:2',
         'complement_especes' => 'decimal:2',
+        'needs_repair'      => 'boolean',
     ];
 
     /**
@@ -145,6 +149,21 @@ class TradeIn extends Model
         return $this->product_received_id === null;
     }
 
+    /**
+     * Vérifier si le téléphone reçu en troc nécessite une réparation
+     */
+    public function needsRepair(): bool
+    {
+        return (bool) $this->needs_repair;
+    }
+
+    /**
+     * Vérifier si la réparation est terminée
+     */
+    public function isRepaired(): bool
+    {
+        return $this->repair_status === 'repare';
+    }
     /**
      * Scope pour les trocs en attente (sans produit créé)
      */

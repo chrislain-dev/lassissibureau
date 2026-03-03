@@ -154,27 +154,32 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                    <div>
-                        <label for="prix_achat" class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                            Prix d'achat (FCFA) *
-                        </label>
-                        <div class="relative">
-                            <input
-                                type="number"
-                                name="prix_achat"
-                                id="prix_achat"
-                                value="{{ old('prix_achat', $product->prix_achat) }}"
-                                class="block w-full py-2.5 pr-16 rounded-md border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 text-sm"
-                                min="0"
-                                step="1"
-                                required
-                            />
-                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                <span class="text-xs text-gray-500 font-medium">FCFA</span>
+                    @if(auth()->user()->isAdmin())
+                        <div>
+                            <label for="prix_achat" class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                                Prix d'achat (FCFA) *
+                            </label>
+                            <div class="relative">
+                                <input
+                                    type="number"
+                                    name="prix_achat"
+                                    id="prix_achat"
+                                    value="{{ old('prix_achat', $product->prix_achat) }}"
+                                    class="block w-full py-2.5 pr-16 rounded-md border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 text-sm"
+                                    min="0"
+                                    step="1"
+                                    required
+                                />
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                    <span class="text-xs text-gray-500 font-medium">FCFA</span>
+                                </div>
                             </div>
+                            <x-input-error :messages="$errors->get('prix_achat')" class="mt-2" />
                         </div>
-                        <x-input-error :messages="$errors->get('prix_achat')" class="mt-2" />
-                    </div>
+                    @else
+                        {{-- CHAMP CACHÉ POUR QUE LA VALIDATION PASSE TOUT DE MÊME LORS DE LA MODIFICATION PAR LE VENDEUR --}}
+                        <input type="hidden" name="prix_achat" value="{{ $product->prix_achat }}">
+                    @endif
 
                     <div>
                         <label for="prix_vente" class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
@@ -195,11 +200,16 @@
                                 <span class="text-xs text-gray-500 font-medium">FCFA</span>
                             </div>
                         </div>
-                        <p class="mt-1.5 text-xs text-gray-500 hidden sm:block">Doit être ≥ au prix d'achat</p>
+                        <p class="mt-1.5 text-xs text-gray-500 hidden sm:block">
+                            @if(auth()->user()->isAdmin())
+                            Doit être ≥ au prix d'achat
+                            @endif
+                        </p>
                         <x-input-error :messages="$errors->get('prix_vente')" class="mt-2" />
                     </div>
                 </div>
 
+                @if(auth()->user()->isAdmin())
                 {{-- Aperçu de la marge --}}
                 <div id="margin-preview" class="mt-4 sm:mt-6 p-3 sm:p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border border-gray-200">
                     <div class="grid grid-cols-2 gap-3 sm:gap-4 text-center">
@@ -213,6 +223,7 @@
                         </div>
                     </div>
                 </div>
+                @endif
             </div>
 
             {{-- Détails complémentaires --}}
@@ -246,7 +257,7 @@
 
                     <div>
                         <label for="date_achat" class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                            Date d'achat
+                            Date d'entrée
                         </label>
                         <input
                             type="date"
@@ -320,6 +331,7 @@
     </div>
 
     @push('scripts')
+    @if(auth()->user()->isAdmin())
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const prixAchatInput = document.getElementById('prix_achat');
@@ -366,5 +378,6 @@
             calculateMargin();
         });
     </script>
+    @endif
     @endpush
 </x-app-layout>
