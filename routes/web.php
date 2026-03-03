@@ -246,12 +246,12 @@ Route::middleware(['auth', 'verified', 'throttle:60,1'])->group(function () {
     */
     Route::prefix('trade-ins')->name('trade-ins.')->group(function () {
         Route::get('/', [TradeInController::class, 'index'])->name('index'); // Accessible Vendeurs + Admins
+        Route::get('/pending', [TradeInController::class, 'pending'])->name('pending');
+        Route::get('/{tradeIn}/create-product', [TradeInController::class, 'create'])->name('create-product');
+        Route::post('/{tradeIn}/store-product', [TradeInController::class, 'storeProduct'])->name('store-product');
 
         // Actions Admin uniquement
         Route::middleware('admin')->group(function () {
-            Route::get('/pending', [TradeInController::class, 'pending'])->name('pending');
-            Route::get('/{tradeIn}/create-product', [TradeInController::class, 'create'])->name('create-product');
-            Route::post('/{tradeIn}/store-product', [TradeInController::class, 'storeProduct'])->name('store-product');
         });
     });
     /*
