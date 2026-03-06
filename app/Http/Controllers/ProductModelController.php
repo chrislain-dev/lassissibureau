@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ProductLocation;
+use App\Enums\ProductState;
 use App\Http\Requests\StoreProductModelRequest;
 use App\Http\Requests\UpdateProductModelRequest;
 use App\Models\ProductModel;
+use App\Services\ProductService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -78,13 +81,39 @@ class ProductModelController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreProductModelRequest $request)
+    public function store(StoreProductModelRequest $request, ProductService $productService)
     {
-        $productModel = ProductModel::create($request->validated());
+        $validated = $request->validated();
+        
+        return DB::transaction(function () use ($validated, $productService) {
+            $productModel = ProductModel::create($validated);
+            
+            // Si c'est un accessoire et qu'une quantité initiale est fournie
+            if ($productModel->category->value === 'accessoire' && !empty($validated['quantity']) && (int)$validated['quantity'] > 0) {
+                $quantity = (int) $validated['quantity'];
+                
+                for ($i = 0; $i < $quantity; $i++) {
+                    $productService->createProduct([
+                        'product_model_id' => $productModel->id,
+                        'imei' => null,
+                        'serial_number' => null,
+                        'state' => ProductState::DISPONIBLE->value,
+                        'location' => ProductLocation::BOUTIQUE->value,
+                        'condition' => $productModel->condition_type?->value ?? 'neuf',
+                        'date_achat' => now()->format('Y-m-d'),
+                        'created_by' => auth()->id(),
+                    ]);
+                }
+                
+                return redirect()
+                    ->route('product-models.show', $productModel)
+                    ->with('success', "Modèle de produit créé avec succès et {$quantity} accessoires initialisés en boutique.");
+            }
 
-        return redirect()
-            ->route('product-models.show', $productModel)
-            ->with('success', 'Modèle de produit créé avec succès.');
+            return redirect()
+                ->route('product-models.show', $productModel)
+                ->with('success', 'Modèle de produit créé avec succès.');
+        });
     }
 
     /**

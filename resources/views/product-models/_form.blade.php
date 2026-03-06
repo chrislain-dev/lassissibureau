@@ -1,6 +1,7 @@
 <div class="space-y-6 sm:space-y-8" x-data="{
     achat: {{ old('prix_revient_default', $productModel->prix_revient_default ?? 0) }},
     vente: {{ old('prix_vente_default', $productModel->prix_vente_default ?? 0) }},
+    category: '{{ old('category', $productModel->category->value ?? '') }}',
     get marge() {
         return this.vente - this.achat;
     },
@@ -65,6 +66,7 @@
                     name="category"
                     id="category"
                     required
+                    x-model="category"
                     class="mt-1.5 sm:mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 text-sm"
                 >
                     <option value="">Sélectionner une catégorie</option>
@@ -118,6 +120,34 @@
             <p class="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-500">Optionnel - Ajoutez une description pour faciliter l'identification</p>
             <x-input-error :messages="$errors->get('description')" class="mt-1.5 sm:mt-2" />
         </div>
+
+        @if(!isset($productModel))
+        <template x-if="category === 'accessoire'">
+            <div class="mt-4 sm:mt-6 p-4 sm:p-5 bg-blue-50 border border-blue-100 rounded-xl">
+                <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0 mt-0.5">
+                        <i data-lucide="package-plus" class="w-5 h-5 text-blue-600"></i>
+                    </div>
+                    <div class="flex-1">
+                        <x-input-label for="quantity" value="Quantité initiale en stock" class="font-medium text-sm text-blue-900" />
+                        <p class="text-xs text-blue-700 mt-1 mb-3">Saisissez la quantité pour générer automatiquement les produits en stock (IMEI et numéro de série vides).</p>
+                        
+                        <x-text-input
+                            type="number"
+                            name="quantity"
+                            id="quantity"
+                            value="{{ old('quantity', '') }}"
+                            class="block w-full sm:max-w-xs text-sm border-blue-200 focus:border-blue-500 focus:ring-blue-500 bg-white"
+                            min="1"
+                            step="1"
+                            placeholder="Ex: 50"
+                        />
+                        <x-input-error :messages="$errors->get('quantity')" class="mt-1.5 sm:mt-2" />
+                    </div>
+                </div>
+            </div>
+        </template>
+        @endif
     </div>
 
     {{-- Section: Tarification --}}

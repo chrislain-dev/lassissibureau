@@ -28,6 +28,8 @@ class ProductModel extends Model
         'prix_vente_default',
         'prix_vente_revendeur',
         'stock_minimum',
+        'quantity',
+        'quantity_sold',
         'is_active',
     ];
 
@@ -38,6 +40,8 @@ class ProductModel extends Model
         'prix_vente_default'   => 'decimal:2',
         'prix_vente_revendeur' => 'decimal:2',
         'stock_minimum'        => 'integer',
+        'quantity'             => 'integer',
+        'quantity_sold'        => 'integer',
         'is_active'            => 'boolean',
     ];
 
@@ -165,10 +169,55 @@ class ProductModel extends Model
     }
 
     /**
-     * Vérifie si le stock est en dessous du minimum
+     * Indique si ce modèle est un accessoire (gestion par quantité, sans IMEI/SN)
+     */
+    public function isAccessoire(): bool
+    {
+        return $this->category->value === 'accessoire';
+    }
+
+    /**
+     * Décrémente le stock d'accessoires et incrémente le compteur de ventes.
+     * Lève une exception si le stock est insuffisant.
+     */
+    public function decrementStock(int $qty = 1): void
+    {
+        if (! $this->isAccessoire()) {
+            throw new \LogicException('decrementStock() ne s\'applique qu\'aux accessoires.');
+        }
+
+        if ($this->quantity < $qty) {
+            throw new \Exception("Stock insuffisant pour '{$this->name}'. Disponible : {$this->quantity}, demandé : {$qty}.");
+        }
+
+        $this->decrement('quantity', $qty);
+        $this->increment('quantity_sold', $qty);
+    }
+
+    /**
+     * Incrémente le stock d'accessoires (annulation de vente, retour).
+     */
+    public function incrementStock(int $qty = 1): void
+    {
+        if (! $this->isAccessoire()) {
+            throw new \LogicException('incrementStock() ne s\'applique qu\'aux accessoires.');
+        }
+
+        $this->increment('quantity', $qty);
+        $this->decrement('quantity_sold', $qty);
+    }
+
+    /**
+     * Vérifie si le stock est en dessous du minimum.
+     * Pour les accessoires, compare `quantity` directement.
+     * Pour les téléphones/tablettes, compte les Product en stock.
      */
     public function isLowStock(): bool
     {
+        if ($this->isAccessoire()) {
+            return ($this->quantity ?? 0) <= $this->stock_minimum;
+        }
+
         return $this->stock_quantity <= $this->stock_minimum;
     }
 

@@ -9,7 +9,9 @@ use App\Enums\SaleType;
 use App\Enums\StockMovementType;
 use App\Models\Payment;
 use App\Models\Product;
+use App\Models\ProductModel;
 use App\Models\Sale;
+use App\Models\StockMovement;
 use App\Models\TradeIn;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -22,11 +24,96 @@ class SaleService
 
     /**
      * Créer une vente (avec ou sans troc).
+     * Supporte deux types de produits :
+     *  - Téléphones / tablettes / PC : sélection d'une unité Product individuelle
+     *  - Accessoires                   : décrément du stock sur ProductModel (pas de Product individuel)
+     */
+    public function createSale(array $data): Sale
+    {
+        // Brancher vers la méthode dédiée aux accessoires
+        if (! empty($data['is_accessoire'])) {
+            return $this->createAccessoireSale($data);
+        }
+
+        return $this->createProductSale($data);
+    }
+
+    /**
+     * Vente d'un accessoire (stock géré par quantité sur ProductModel).
+     */
+    private function createAccessoireSale(array $data): Sale
+    {
+        return DB::transaction(function () use ($data) {
+            $productModel = ProductModel::lockForUpdate()->findOrFail($data['product_model_id']);
+
+            if (! $productModel->isAccessoire()) {
+                throw new \Exception("Ce modèle n'est pas un accessoire.");
+            }
+
+            $qtyVendue = (int) ($data['quantity_vendue'] ?? 1);
+
+            // Vérifier le stock
+            $productModel->decrementStock($qtyVendue); // lève une exception si insuffisant
+
+            $prixVente   = (float) ($data['prix_vente'] ?? $productModel->prix_vente_default);
+            $prixAchat   = (float) ($data['prix_achat_produit'] ?? $productModel->prix_revient_default);
+            $amountPaid  = (float) ($data['amount_paid'] ?? $prixVente);
+
+            $sale = Sale::create([
+                'product_id'           => null,
+                'product_model_id'     => $productModel->id,
+                'quantity_vendue'      => $qtyVendue,
+                'sale_type'            => $data['sale_type'] ?? SaleType::ACHAT_DIRECT->value,
+                'prix_vente'           => $prixVente,
+                'prix_achat_produit'   => $prixAchat,
+                'client_name'          => $data['client_name'] ?? null,
+                'client_phone'         => $data['client_phone'] ?? null,
+                'reseller_id'          => null, // accessoires : ventes directes uniquement
+                'date_vente_effective' => $data['date_vente_effective'],
+                'is_confirmed'         => true, // toujours confirmé (vente directe)
+                'payment_status'       => PaymentStatus::PAID,
+                'amount_paid'          => $prixVente,
+                'amount_remaining'     => 0,
+                'payment_due_date'     => null,
+                'sold_by'              => $data['sold_by'],
+                'notes'                => $data['notes'] ?? null,
+            ]);
+
+            // Enregistrer le paiement
+            if ($amountPaid > 0) {
+                $this->recordPayment($sale, $amountPaid, [
+                    'payment_method' => $data['payment_method'] ?? 'cash',
+                    'reference'      => $data['payment_reference'] ?? null,
+                    'notes'          => 'Paiement initial (accessoire)',
+                ]);
+            }
+
+            // Mouvement de stock au niveau du modèle
+            StockMovement::create([
+                'product_id'       => null,
+                'product_model_id' => $productModel->id,
+                'type'             => StockMovementType::VENTE_DIRECTE->value,
+                'quantity'         => -$qtyVendue,
+                'state_before'     => null,
+                'location_before'  => null,
+                'state_after'      => null,
+                'location_after'   => null,
+                'sale_id'          => $sale->id,
+                'user_id'          => $data['sold_by'],
+                'notes'            => "Vente accessoire x{$qtyVendue} — {$productModel->name}",
+            ]);
+
+            return $sale->fresh(['productModel', 'seller', 'payments']);
+        });
+    }
+
+    /**
+     * Vente d'un produit individuel (téléphone, tablette, PC). Ancien createSale().
      * Le prix de vente est déterminé automatiquement depuis le ProductModel :
      *  - Vente client directe  : prix_vente_default
      *  - Vente revendeur        : prix_vente_revendeur
      */
-    public function createSale(array $data): Sale
+    private function createProductSale(array $data): Sale
     {
         return DB::transaction(function () use ($data) {
             // Verrouiller le produit pour éviter les conditions de course (double vente)
@@ -184,14 +271,51 @@ class SaleService
 
     /**
      * Supprimer une vente et remettre le produit en stock.
-     * Crée un mouvement de stock ANNULATION_VENTE pour la traçabilité.
+     * Supporte les ventes de téléphones ET les ventes d'accessoires.
      */
-    public function deleteSale(Sale $sale, string $reason = ''): Product
+    public function deleteSale(Sale $sale, string $reason = ''): ?Product
     {
         return DB::transaction(function () use ($sale, $reason) {
+            // --- Vente d'accessoire ---
+            if ($sale->isAccessoireSale()) {
+                $productModel = $sale->productModel;
+                $qtyVendue    = $sale->quantity_vendue ?? 1;
+
+                // Remettre le stock
+                $productModel->incrementStock($qtyVendue);
+
+                $notes = sprintf(
+                    'Annulation vente accessoire #%d — %s x%d — Montant: %s FCFA%s',
+                    $sale->id,
+                    $productModel->name,
+                    $qtyVendue,
+                    number_format($sale->prix_vente, 0, ',', ' '),
+                    $reason ? ' — Motif: '.$reason : ''
+                );
+
+                StockMovement::create([
+                    'product_id'       => null,
+                    'product_model_id' => $productModel->id,
+                    'type'             => StockMovementType::ANNULATION_VENTE->value,
+                    'quantity'         => $qtyVendue,
+                    'state_before'     => null,
+                    'location_before'  => null,
+                    'state_after'      => null,
+                    'location_after'   => null,
+                    'sale_id'          => $sale->id,
+                    'user_id'          => Auth::id(),
+                    'notes'            => $notes,
+                ]);
+
+                $sale->payments()->delete();
+                $sale->delete();
+
+                return null;
+            }
+
+            // --- Vente de produit individuel (comportement original) ---
             $product = $sale->product;
 
-            // Construire la note de traçabilité
             $typeLabel = match ($sale->sale_type->value ?? $sale->sale_type) {
                 'achat_direct' => 'vente directe client',
                 'troc'         => 'vente avec troc',
@@ -221,10 +345,7 @@ class SaleService
                 'notes'           => $notes,
             ]);
 
-            // Supprimer les paiements liés
             $sale->payments()->delete();
-
-            // Supprimer la vente
             $sale->delete();
 
             return $product->fresh();

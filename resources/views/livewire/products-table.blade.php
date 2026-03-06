@@ -29,13 +29,13 @@
                                 </span>
                             </div>
 
+                            @if(auth()->check() && auth()->user()->isAdmin())
                             <div class="w-full border-t border-gray-100 pt-3 mt-auto">
                                 <div class="grid grid-cols-1 gap-1.5 text-xs text-left">
                                     <div class="flex justify-between items-center text-gray-600">
                                         <span>Revenu espéré:</span>
                                         <span class="font-bold text-gray-900">{{ number_format($category['revenu'], 0, ',', ' ') }} F</span>
                                     </div>
-                                    @if(auth()->check() && auth()->user()->isAdmin())
                                     <div class="flex justify-between items-center text-gray-600">
                                         <span>Investissement:</span>
                                         <span class="font-medium text-red-600">{{ number_format($category['investissement'], 0, ',', ' ') }} F</span>
@@ -44,9 +44,9 @@
                                         <span>Bénéfice espéré:</span>
                                         <span class="font-bold text-green-600">{{ number_format($category['benefice'], 0, ',', ' ') }} F</span>
                                     </div>
-                                    @endif
                                 </div>
                             </div>
+                            @endif
                         </div>
                     </button>
                 @empty

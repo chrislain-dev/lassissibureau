@@ -26,12 +26,13 @@ class StoreProductModelRequest extends FormRequest
             'name' => ['required', 'string', 'max:255', 'unique:product_models,name'],
             'brand' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
-            'category' => ['required', 'string', Rule::in(['telephone', 'accessoire'])],
+            'category' => ['required', 'string', Rule::in(['telephone', 'tablette', 'pc', 'accessoire'])],
             'image_url' => ['nullable', 'url', 'max:500'],
             'prix_revient_default' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
             'prix_vente_default' => ['nullable', 'numeric', 'min:0', 'max:99999999.99', 'gte:prix_revient_default'],
             'prix_vente_revendeur' => ['nullable', 'numeric', 'min:0', 'max:99999999.99', 'gte:prix_revient_default'],
             'stock_minimum' => ['required', 'integer', 'min:0', 'max:1000'],
+            'quantity'      => ['nullable', 'integer', 'min:0', 'max:99999'],
             'condition_type' => ['required', 'string', Rule::in(['neuf', 'venu', 'occasion'])],
             'is_active' => ['boolean'],
         ];
@@ -53,6 +54,7 @@ class StoreProductModelRequest extends FormRequest
             'prix_vente_default' => 'prix de vente par défaut',
             'prix_vente_revendeur' => 'prix de vente revendeur',
             'stock_minimum' => 'stock minimum',
+            'quantity'      => 'quantité en stock',
             'is_active' => 'actif',
         ];
     }
@@ -72,6 +74,8 @@ class StoreProductModelRequest extends FormRequest
             'prix_vente_default.gte' => 'Le prix de vente client doit être supérieur ou égal au prix de revient.',
             'prix_vente_revendeur.gte' => 'Le prix de vente revendeur doit être supérieur ou égal au prix de revient.',
             'stock_minimum.required' => 'Le stock minimum est obligatoire.',
+            'quantity.integer'        => 'La quantité doit être un nombre entier.',
+            'quantity.min'            => 'La quantité ne peut pas être négative.',
         ];
     }
 

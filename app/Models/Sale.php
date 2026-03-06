@@ -19,6 +19,8 @@ class Sale extends Model
 
     protected $fillable = [
         'product_id',
+        'product_model_id',
+        'quantity_vendue',
         'sale_type',
         'prix_vente',
         'prix_achat_produit',
@@ -39,18 +41,19 @@ class Sale extends Model
     ];
 
     protected $casts = [
-        'sale_type' => SaleType::class,
-        'payment_status' => PaymentStatus::class,
-        'prix_vente' => 'decimal:2',
-        'prix_achat_produit' => 'decimal:2',
-        'amount_paid' => 'decimal:2',
-        'amount_remaining' => 'decimal:2',
-        'date_depot_revendeur' => 'date',
-        'date_confirmation_vente' => 'date',
-        'payment_due_date' => 'date',
-        'final_payment_date' => 'date',
-        'date_vente_effective' => 'date',
-        'is_confirmed' => 'boolean',
+        'sale_type'              => SaleType::class,
+        'payment_status'         => PaymentStatus::class,
+        'prix_vente'             => 'decimal:2',
+        'prix_achat_produit'     => 'decimal:2',
+        'amount_paid'            => 'decimal:2',
+        'amount_remaining'       => 'decimal:2',
+        'date_depot_revendeur'   => 'date',
+        'date_confirmation_vente'=> 'date',
+        'payment_due_date'       => 'date',
+        'final_payment_date'     => 'date',
+        'date_vente_effective'   => 'date',
+        'is_confirmed'           => 'boolean',
+        'quantity_vendue'        => 'integer',
     ];
 
     /**
@@ -65,11 +68,27 @@ class Sale extends Model
     }
 
     /**
-     * Produit vendu
+     * Produit vendu (null pour les accessoires)
      */
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * Modèle de produit (toujours renseigné, que ce soit un téléphone ou un accessoire)
+     */
+    public function productModel(): BelongsTo
+    {
+        return $this->belongsTo(ProductModel::class);
+    }
+
+    /**
+     * Indique si c'est une vente d'accessoire (pas d'unité individuelle)
+     */
+    public function isAccessoireSale(): bool
+    {
+        return $this->product_id === null && $this->product_model_id !== null;
     }
 
     /**

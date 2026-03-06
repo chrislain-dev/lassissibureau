@@ -2,8 +2,10 @@
 
 namespace App\Livewire\Sales;
 
+use App\Enums\SaleType;
 use App\Http\Requests\StoreSaleRequest;
 use App\Models\Product;
+use App\Models\ProductModel;
 use App\Models\Reseller;
 use App\Services\SaleService;
 use Illuminate\Support\Facades\Auth;
@@ -11,7 +13,16 @@ use Livewire\Component;
 
 class CreateSale extends Component
 {
-    // Produit
+    // ---------------------------------------------------------------
+    // Mode : accessoire (stock par quantité) vs produit individuel
+    // ---------------------------------------------------------------
+    public bool $is_accessoire = false;
+
+    // Accessoire
+    public $product_model_id = null;  // pour les accessoires
+    public int $quantity_vendue = 1;
+
+    // Produit individuel
     public ?Product $preselectedProduct = null;
 
     public $product_id = null;
@@ -68,24 +79,31 @@ class CreateSale extends Component
     // Collections
     public $availableProducts;
 
+    public $accessoireModels;
+
     public $resellers;
 
     public function mount(?int $productId = null)
     {
-        // Livewire 3 n'injecte pas automatiquement les query strings dans mount()
-        // On lit manuellement ?productId= ou ?product= depuis l'URL
         $productId = $productId
             ?? (int) request()->query('productId')
             ?: (int) request()->query('product')
             ?: null;
 
-        // Initialiser les dates
         $this->date_depot_revendeur = now()->format('Y-m-d');
         $this->payment_due_date = now()->addDays(30)->format('Y-m-d');
 
-        // Charger les produits disponibles
+        // Charger les produits disponibles (téléphones, tablettes, PC)
         $this->availableProducts = Product::availableForSale()
             ->with('productModel')
+            ->get();
+
+        // Charger les modèles d'accessoires avec du stock disponible
+        $this->accessoireModels = ProductModel::where('category', 'accessoire')
+            ->where('is_active', true)
+            ->where('quantity', '>', 0)
+            ->orderBy('brand')
+            ->orderBy('name')
             ->get();
 
         // Charger les revendeurs actifs
@@ -97,11 +115,55 @@ class CreateSale extends Component
         if ($productId) {
             $this->preselectedProduct = Product::with('productModel')->find($productId);
             if ($this->preselectedProduct) {
-                $this->product_id = $this->preselectedProduct->id;
-                $this->prix_vente = $this->buyer_type === 'reseller'
-                    ? $this->preselectedProduct->prix_vente_revendeur
-                    : $this->preselectedProduct->prix_vente;
-                $this->prix_achat_produit = $this->preselectedProduct->prix_achat;
+                if ($this->preselectedProduct->productModel && $this->preselectedProduct->productModel->category->value === 'accessoire') {
+                    $this->is_accessoire = true;
+                    $this->product_model_id = $this->preselectedProduct->product_model_id;
+                    $this->prix_vente = $this->buyer_type === 'reseller'
+                        ? $this->preselectedProduct->productModel->prix_vente_revendeur
+                        : $this->preselectedProduct->productModel->prix_vente_default;
+                    $this->prix_achat_produit = $this->preselectedProduct->productModel->prix_revient_default;
+                    $this->sale_type = 'achat_direct'; // Force achat direct pour les accessoires
+                } else {
+                    $this->product_id = $this->preselectedProduct->id;
+                    $this->prix_vente = $this->buyer_type === 'reseller'
+                        ? $this->preselectedProduct->prix_vente_revendeur
+                        : $this->preselectedProduct->prix_vente;
+                    $this->prix_achat_produit = $this->preselectedProduct->prix_achat;
+                }
+            }
+        }
+    }
+
+    /**
+     * Quand on change le mode accessoire/produit
+     */
+    public function updatedIsAccessoire(bool $value): void
+    {
+        // Réinitialiser les champs liés à l'autre mode
+        if ($value) {
+            $this->product_id         = null;
+            $this->preselectedProduct = null;
+            $this->prix_achat_produit = null;
+            $this->quantity_vendue    = 1;
+            $this->sale_type          = 'achat_direct'; // Forcer la vente directe pour les accessoires
+            $this->has_trade_in       = false;
+        } else {
+            $this->product_model_id = null;
+            $this->prix_vente       = null;
+            $this->quantity_vendue  = 1;
+        }
+    }
+
+    /**
+     * Quand on sélectionne un modèle d'accessoire
+     */
+    public function updatedProductModelId($value): void
+    {
+        if ($value && $this->is_accessoire) {
+            $model = ProductModel::find($value);
+            if ($model) {
+                $this->prix_vente         = $model->prix_vente_default;
+                $this->prix_achat_produit = $model->prix_revient_default;
             }
         }
     }
@@ -134,7 +196,14 @@ class CreateSale extends Component
             $this->reseller_confirm_immediate = false;
         }
 
-        if ($this->product_id) {
+        if ($this->is_accessoire) {
+            $model = ProductModel::find($this->product_model_id);
+            if ($model) {
+                $this->prix_vente = $this->buyer_type === 'reseller'
+                    ? $model->prix_vente_revendeur
+                    : $model->prix_vente_default;
+            }
+        } elseif ($this->product_id) {
             $product = Product::find($this->product_id);
             if ($product) {
                 $this->prix_vente = $this->buyer_type === 'reseller'
@@ -209,6 +278,48 @@ class CreateSale extends Component
 
     public function save(SaleService $saleService)
     {
+        // --- Mode accessoire ---
+        if ($this->is_accessoire) {
+            $this->validate([
+                'product_model_id' => ['required', 'exists:product_models,id'],
+                'quantity_vendue'  => ['required', 'integer', 'min:1', 'max:9999'],
+                'prix_vente'       => ['required', 'numeric', 'min:0'],
+                'client_name'      => ['nullable', 'string', 'max:255'],
+                'client_phone'     => ['nullable', 'string', 'max:20'],
+                'payment_method'   => ['required', 'string'],
+            ]);
+
+            try {
+                $data = [
+                    'is_accessoire'        => true,
+                    'product_model_id'     => $this->product_model_id,
+                    'quantity_vendue'      => $this->quantity_vendue,
+                    'sale_type'            => SaleType::ACHAT_DIRECT->value,
+                    'prix_vente'           => $this->prix_vente,
+                    'prix_achat_produit'   => $this->prix_achat_produit,
+                    'client_name'          => $this->client_name,
+                    'client_phone'         => $this->client_phone,
+                    'date_vente_effective' => now()->format('Y-m-d'),
+                    'is_confirmed'         => true,
+                    'payment_method'       => $this->payment_method,
+                    'sold_by'              => Auth::id(),
+                    'notes'                => $this->notes,
+                ];
+
+                $sale = $saleService->createSale($data);
+
+                session()->flash('success', 'Vente d\'accessoire enregistrée avec succès.');
+
+                return redirect()->route('sales.show', $sale);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Erreur vente accessoire: '.$e->getMessage());
+                session()->flash('error', 'Erreur : '.$e->getMessage());
+            }
+
+            return;
+        }
+
+        // --- Mode produit individuel (téléphone, tablette, PC) ---
         // 1. Préparer les données pour la validation (incluant les mappages Livewire -> Request)
         $dataForValidation = array_merge($this->all(), [
             'product_id' => $this->product_id,

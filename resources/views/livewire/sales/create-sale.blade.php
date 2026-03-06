@@ -20,46 +20,138 @@
                 </div>
             </div>
 
-            @if($preselectedProduct)
-                {{-- Produit présélectionné --}}
-                <div class="flex items-start gap-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                    <div class="w-16 h-16 bg-white rounded-lg flex items-center justify-center flex-shrink-0 border border-gray-200">
-                        <i data-lucide="{{ $preselectedProduct->productModel->category->icon() }}" class="w-8 h-8 text-gray-600"></i>
+            {{-- Toggle accessoire / produit individuel --}}
+            <div class="flex gap-3 mb-6">
+                <label class="flex-1 relative flex items-center p-3 border-2 rounded-lg cursor-pointer transition-colors
+                    {{ !$is_accessoire ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-400' }}">
+                    <input wire:model.live="is_accessoire" type="radio" :value="false" value="0"
+                        class="sr-only" {{ !$is_accessoire ? 'checked' : '' }}>
+                    <input wire:model.live="is_accessoire" type="radio" value="0"
+                        class="rounded-full border-gray-300 text-gray-900 focus:ring-gray-900"
+                        {{ !$is_accessoire ? 'checked' : '' }}>
+                    <div class="ml-3">
+                        <span class="block text-sm font-medium text-gray-900">📱 Téléphone / Tablette / PC</span>
+                        <span class="block text-xs text-gray-500">Avec IMEI ou numéro de série</span>
                     </div>
-                    <div class="flex-1">
-                        <h4 class="text-lg font-bold text-gray-900">{{ $preselectedProduct->productModel->name }}</h4>
-                        <p class="text-sm text-gray-500 mt-1">{{ $preselectedProduct->productModel->brand }}</p>
+                </label>
 
-                        @if($preselectedProduct->imei)
-                            <p class="text-xs font-mono text-gray-500 mt-2">IMEI: {{ $preselectedProduct->imei }}</p>
+                <label class="flex-1 relative flex items-center p-3 border-2 rounded-lg cursor-pointer transition-colors
+                    {{ $is_accessoire ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-400' }}">
+                    <input wire:model.live="is_accessoire" type="radio" value="1"
+                        class="rounded-full border-gray-300 text-gray-900 focus:ring-gray-900"
+                        {{ $is_accessoire ? 'checked' : '' }}>
+                    <div class="ml-3">
+                        <span class="block text-sm font-medium text-gray-900">🎧 Accessoire</span>
+                        <span class="block text-xs text-gray-500">AirPods, câble, coque, etc.</span>
+                    </div>
+                </label>
+            </div>
+
+            @if($is_accessoire)
+                {{-- Mode accessoire --}}
+                <div class="space-y-4">
+                    <div>
+                        <label for="product_model_id" class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                            Accessoire *
+                        </label>
+                        <select wire:model.live="product_model_id" id="product_model_id"
+                            class="block w-full py-2.5 rounded-md border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 text-sm">
+                            <option value="">Sélectionner un accessoire</option>
+                            @foreach($accessoireModels as $model)
+                                <option value="{{ $model->id }}">
+                                    {{ $model->brand ? $model->brand.' — ' : '' }}{{ $model->name }}
+                                    (Stock : {{ $model->quantity }} unités)
+                                    — {{ number_format($model->prix_vente_default, 0, ',', ' ') }} FCFA
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('product_model_id') <span class="mt-2 text-sm text-red-600">{{ $message }}</span> @enderror
+                        @if(empty($accessoireModels) || $accessoireModels->isEmpty())
+                            <p class="mt-2 text-xs text-amber-600">⚠ Aucun accessoire avec du stock disponible. Créez un modèle d'accessoire d'abord.</p>
                         @endif
+                    </div>
 
-                        <div class="mt-3">
-                            <span class="text-sm font-medium text-gray-700">Prix de vente: </span>
-                            <span class="text-lg font-bold text-gray-900">{{ number_format($preselectedProduct->prix_vente, 0, ',', ' ') }} FCFA</span>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="quantity_vendue" class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                                Quantité *
+                            </label>
+                            <input wire:model="quantity_vendue" type="number" id="quantity_vendue"
+                                min="1" max="9999"
+                                class="block w-full py-2.5 rounded-md border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 text-sm"
+                                placeholder="1">
+                            @error('quantity_vendue') <span class="mt-2 text-sm text-red-600">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div>
+                            <label for="prix_vente_accessoire" class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                                Prix unitaire (FCFA) *
+                            </label>
+                            <div class="relative">
+                                <input wire:model="prix_vente" type="number" id="prix_vente_accessoire"
+                                    min="0" step="100"
+                                    class="block w-full py-2.5 pr-16 rounded-md border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 text-sm"
+                                    placeholder="0">
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                    <span class="text-xs text-gray-500 font-medium">FCFA</span>
+                                </div>
+                            </div>
+                            @error('prix_vente') <span class="mt-2 text-sm text-red-600">{{ $message }}</span> @enderror
                         </div>
                     </div>
+
+                    @if($product_model_id && $prix_vente && $quantity_vendue)
+                        <div class="p-3 bg-green-50 border border-green-200 rounded-lg">
+                            <p class="text-sm font-medium text-green-900">
+                                💰 Total :
+                                <strong>{{ number_format((float)$prix_vente * (int)$quantity_vendue, 0, ',', ' ') }} FCFA</strong>
+                                ({{ $quantity_vendue }} x {{ number_format((float)$prix_vente, 0, ',', ' ') }} FCFA)
+                            </p>
+                        </div>
+                    @endif
                 </div>
             @else
-                {{-- Sélection du produit --}}
-                <div>
-                    <label for="product_id" class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                        Produit *
-                    </label>
-                    <select wire:model.live="product_id" id="product_id" class="block w-full py-2.5 rounded-md border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 text-sm">
-                        <option value="">Sélectionner un produit</option>
-                        @foreach($availableProducts as $prod)
-                            <option value="{{ $prod->id }}">
-                                {{ $prod->productModel->name }} - {{ $prod->productModel->brand }}
-                                @if($prod->imei) ({{ $prod->imei }}) @endif
-                                - {{ number_format($prod->prix_vente, 0, ',', ' ') }} FCFA
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('product_id') <span class="mt-2 text-sm text-red-600">{{ $message }}</span> @enderror
-                </div>
+                {{-- Mode produit individuel --}}
+                @if($preselectedProduct)
+                    <div class="flex items-start gap-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                        <div class="w-16 h-16 bg-white rounded-lg flex items-center justify-center flex-shrink-0 border border-gray-200">
+                            <i data-lucide="{{ $preselectedProduct->productModel->category->icon() }}" class="w-8 h-8 text-gray-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="text-lg font-bold text-gray-900">{{ $preselectedProduct->productModel->name }}</h4>
+                            <p class="text-sm text-gray-500 mt-1">{{ $preselectedProduct->productModel->brand }}</p>
+
+                            @if($preselectedProduct->imei)
+                                <p class="text-xs font-mono text-gray-500 mt-2">IMEI: {{ $preselectedProduct->imei }}</p>
+                            @endif
+
+                            <div class="mt-3">
+                                <span class="text-sm font-medium text-gray-700">Prix de vente: </span>
+                                <span class="text-lg font-bold text-gray-900">{{ number_format($preselectedProduct->prix_vente, 0, ',', ' ') }} FCFA</span>
+                            </div>
+                        </div>
+                    </div>
+                @else
+                    <div>
+                        <label for="product_id" class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                            Produit *
+                        </label>
+                        <select wire:model.live="product_id" id="product_id" class="block w-full py-2.5 rounded-md border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 text-sm">
+                            <option value="">Sélectionner un produit</option>
+                            @foreach($availableProducts as $prod)
+                                <option value="{{ $prod->id }}">
+                                    {{ $prod->productModel->name }} - {{ $prod->productModel->brand }}
+                                    @if($prod->imei) ({{ $prod->imei }}) @endif
+                                    - {{ number_format($prod->prix_vente, 0, ',', ' ') }} FCFA
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('product_id') <span class="mt-2 text-sm text-red-600">{{ $message }}</span> @enderror
+                    </div>
+                @endif
             @endif
         </div>
+
 
         {{-- Type de vente --}}
         <div class="bg-white border border-gray-200 rounded-lg p-6">
@@ -82,6 +174,7 @@
                     </div>
                 </label>
 
+                @if(!$is_accessoire)
                 <label class="relative flex items-start p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-gray-900 transition-colors has-[:checked]:border-gray-900 has-[:checked]:bg-gray-50">
                     <input wire:model.live="sale_type" type="radio" value="troc" class="mt-0.5 rounded-full border-gray-300 text-gray-900 focus:ring-gray-900">
                     <div class="ml-3">
@@ -89,6 +182,7 @@
                         <span class="block text-xs text-gray-500 mt-0.5">On reprend son ancien téléphone + de l'argent</span>
                     </div>
                 </label>
+                @endif
             </div>
             @error('sale_type') <span class="mt-2 text-sm text-red-600">{{ $message }}</span> @enderror
         </div>
