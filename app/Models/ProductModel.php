@@ -133,6 +133,9 @@ class ProductModel extends Model
      */
     public function getStockQuantityAttribute(): int
     {
+        if ($this->isAccessoire()) {
+            return $this->quantity ?? 0;
+        }
         return $this->productsInStock()->count();
     }
 
@@ -141,6 +144,9 @@ class ProductModel extends Model
      */
     public function getAvailableQuantityAttribute(): int
     {
+        if ($this->isAccessoire()) {
+            return $this->quantity ?? 0;
+        }
         return $this->productsAvailableForSale()->count();
     }
 
@@ -149,6 +155,9 @@ class ProductModel extends Model
      */
     public function getSoldQuantityAttribute(): int
     {
+        if ($this->isAccessoire()) {
+            return $this->quantity_sold ?? 0;
+        }
         return $this->productsSold()->count();
     }
 

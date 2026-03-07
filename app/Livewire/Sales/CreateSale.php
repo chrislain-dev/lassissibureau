@@ -83,11 +83,15 @@ class CreateSale extends Component
 
     public $resellers;
 
-    public function mount(?int $productId = null)
+    public function mount(?int $productId = null, ?int $productModelId = null)
     {
         $productId = $productId
             ?? (int) request()->query('productId')
             ?: (int) request()->query('product')
+            ?: null;
+
+        $productModelId = $productModelId
+            ?? (int) request()->query('productModelId')
             ?: null;
 
         $this->date_depot_revendeur = now()->format('Y-m-d');
@@ -111,8 +115,21 @@ class CreateSale extends Component
             ->orderBy('name')
             ->get();
 
+        // Si modèle d'accessoire présélectionné
+        if ($productModelId) {
+            $model = ProductModel::find($productModelId);
+            if ($model && $model->category->value === 'accessoire') {
+                $this->is_accessoire = true;
+                $this->product_model_id = $model->id;
+                $this->prix_vente = $this->buyer_type === 'reseller'
+                    ? $model->prix_vente_revendeur
+                    : $model->prix_vente_default;
+                $this->prix_achat_produit = $model->prix_revient_default;
+                $this->sale_type = 'achat_direct';
+            }
+        }
         // Si produit présélectionné
-        if ($productId) {
+        elseif ($productId) {
             $this->preselectedProduct = Product::with('productModel')->find($productId);
             if ($this->preselectedProduct) {
                 if ($this->preselectedProduct->productModel && $this->preselectedProduct->productModel->category->value === 'accessoire') {

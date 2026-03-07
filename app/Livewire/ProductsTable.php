@@ -120,6 +120,31 @@ class ProductsTable extends Component
 
         // 3. Mapper les résultats
         return $categoriesWithModels->map(function ($modelsCount, $category) use ($categoryStats) {
+            if ($category === 'accessoire') {
+                $statsAccessoire = ProductModel::where('category', 'accessoire')
+                    ->where('is_active', true)
+                    ->selectRaw('
+                        SUM(quantity) as investissement_qty,
+                        SUM(prix_revient_default * quantity) as investissement,
+                        SUM(prix_vente_default * quantity) as revenu_espere
+                    ')
+                    ->first();
+
+                $investissement = (float) ($statsAccessoire->investissement ?? 0);
+                $revenu = (float) ($statsAccessoire->revenu_espere ?? 0);
+
+                return [
+                    'value' => $category,
+                    'label' => $this->getCategoryLabel($category),
+                    'icon' => $this->getCategoryIcon($category),
+                    'models_count' => $modelsCount,
+                    'products_count' => $modelsCount, // "46 modeles, 46 produits"
+                    'investissement' => $investissement,
+                    'revenu' => $revenu,
+                    'benefice' => $revenu - $investissement,
+                ];
+            }
+
             $stats = $categoryStats[$category] ?? null;
             $investissement = $stats ? (float) $stats->investissement : 0;
             $revenu = $stats ? (float) $stats->revenu_espere : 0;
@@ -142,6 +167,24 @@ class ProductsTable extends Component
     {
         if ($this->step !== 2 || ! $this->selectedCategory) {
             return collect();
+        }
+
+        if ($this->selectedCategory === 'accessoire') {
+            $query = ProductModel::where('category', 'accessoire');
+
+            if ($this->search) {
+                $search = $this->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'LIKE', '%'.$search.'%')
+                        ->orWhere('brand', 'LIKE', '%'.$search.'%');
+                });
+            }
+
+            if ($this->condition !== '' && $this->condition !== null) {
+                $query->where('condition_type', $this->condition);
+            }
+
+            return $query->latest()->paginate(15);
         }
 
         $query = Product::with(['productModel'])
@@ -187,6 +230,22 @@ class ProductsTable extends Component
             return [
                 'total' => 0,
                 'available' => 0,
+                'chez_revendeur' => 0,
+                'a_reparer' => 0,
+            ];
+        }
+
+        if ($this->selectedCategory === 'accessoire') {
+            $stats = ProductModel::where('category', 'accessoire')
+                ->selectRaw('
+                    SUM(quantity) as available,
+                    SUM(quantity_sold) as sold
+                ')
+                ->first();
+
+            return [
+                'total' => (int) ($stats->available ?? 0) + (int) ($stats->sold ?? 0),
+                'available' => (int) ($stats->available ?? 0),
                 'chez_revendeur' => 0,
                 'a_reparer' => 0,
             ];
@@ -253,6 +312,19 @@ class ProductsTable extends Component
     {
         if ($this->step !== 2 || ! $this->selectedCategory) {
             return [];
+        }
+
+        if ($this->selectedCategory === 'accessoire') {
+            return cache()->remember(
+                "conditions_model_accessoire",
+                now()->addHour(),
+                fn () => ProductModel::where('category', 'accessoire')
+                    ->whereNotNull('condition_type')
+                    ->where('condition_type', '!=', '')
+                    ->distinct()
+                    ->pluck('condition_type')
+                    ->toArray()
+            );
         }
 
         // OPTIMISATION: Cache le résultat

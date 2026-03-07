@@ -119,24 +119,39 @@
                     <div class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
                         @php
                             $categoryIcons = ['telephone' => 'smartphone', 'tablette' => 'tablet', 'pc' => 'monitor', 'accessoire' => 'box'];
-                            $icon = $categoryIcons[$sale->product->productModel->category->value] ?? 'box';
+                            $categoryValue = $sale->product ? $sale->product->productModel->category->value : ($sale->productModel ? $sale->productModel->category->value : 'accessoire');
+                            $icon = $categoryIcons[$categoryValue] ?? 'box';
+                            
+                            $modelName = $sale->product ? $sale->product->productModel->name : ($sale->productModel ? $sale->productModel->name : 'N/A');
+                            $modelBrand = $sale->product ? $sale->product->productModel->brand : ($sale->productModel ? $sale->productModel->brand : 'N/A');
                         @endphp
                         <i data-lucide="{{ $icon }}" class="w-8 h-8 text-gray-600"></i>
                     </div>
                     <div class="flex-1">
-                        <h4 class="text-lg font-bold text-gray-900">{{ $sale->product->productModel->name }}</h4>
-                        <p class="text-sm text-gray-500 mt-1">{{ $sale->product->productModel->brand }}</p>
+                        <h4 class="text-lg font-bold text-gray-900">{{ $modelName }}</h4>
+                        <p class="text-sm text-gray-500 mt-1">
+                            {{ $modelBrand }}
+                            @if($sale->product_model_id && $sale->quantity_vendue > 1)
+                                &mdash; Quantité : <span class="font-semibold">{{ $sale->quantity_vendue }}</span>
+                            @endif
+                        </p>
 
-                        @if($sale->product->imei)
+                        @if($sale->product && $sale->product->imei)
                             <p class="text-xs font-mono text-gray-500 mt-2 bg-gray-50 inline-block px-2 py-1 rounded">
                                 IMEI: {{ $sale->product->imei }}
                             </p>
                         @endif
 
                         <div class="mt-3">
-                            <a href="{{ route('products.show', $sale->product) }}" class="text-sm text-gray-600 hover:text-gray-900 underline">
-                                Voir le produit →
-                            </a>
+                            @if($sale->product)
+                                <a href="{{ route('products.show', $sale->product) }}" class="text-sm text-gray-600 hover:text-gray-900 underline">
+                                    Voir le produit →
+                                </a>
+                            @elseif($sale->productModel)
+                                <a href="{{ route('product-models.show', $sale->productModel) }}" class="text-sm text-gray-600 hover:text-gray-900 underline">
+                                    Voir le modèle d'accessoire →
+                                </a>
+                            @endif
                         </div>
                     </div>
                 </div>

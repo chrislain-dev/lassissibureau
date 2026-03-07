@@ -19,6 +19,13 @@
                 <span class="hidden xs:inline">Modifier</span>
             </a>
         @endcan
+        @if($productModel->category->value === 'accessoire' && $productModel->quantity > 0)
+            <a href="{{ route('sales.create', ['productModelId' => $productModel->id]) }}"
+               class="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium text-xs sm:text-sm hover:bg-emerald-700 active:bg-emerald-800 transition-all hover:shadow-lg hover:scale-105 w-full sm:w-auto">
+                <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+                <span class="hidden xs:inline">Vendre</span>
+            </a>
+        @endif
     </x-slot>
 
     <x-alerts.success :message="session('success')" />
@@ -145,7 +152,66 @@
             </div>
 
 
-            {{-- Liste des produits avec design amélioré et regroupement --}}
+            {{-- Bloc accessoire : stock restant + total vendu --}}
+            @if($productModel->isAccessoire())
+                <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                    <div class="p-4 sm:p-6 border-b border-gray-100 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-sm sm:text-base font-semibold text-gray-900">Inventaire</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">Stock et ventes en temps réel</p>
+                        </div>
+                        <i data-lucide="box" class="w-5 h-5 text-gray-400 flex-shrink-0"></i>
+                    </div>
+
+                    <div class="p-4 sm:p-6">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100 text-center">
+                                <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <i data-lucide="package" class="w-5 h-5 text-white"></i>
+                                </div>
+                                <p class="text-3xl font-black text-blue-900">{{ $stats['total_stock'] }}</p>
+                                <p class="text-xs font-medium text-blue-700 mt-1 uppercase tracking-wide">Stock restant</p>
+                                <p class="text-xs text-blue-500 mt-0.5">unités disponibles</p>
+                            </div>
+
+                            <div class="bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl p-4 border border-emerald-100 text-center">
+                                <div class="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <i data-lucide="trending-up" class="w-5 h-5 text-white"></i>
+                                </div>
+                                <p class="text-3xl font-black text-emerald-900">{{ $stats['total_sold'] }}</p>
+                                <p class="text-xs font-medium text-emerald-700 mt-1 uppercase tracking-wide">Déjà vendus</p>
+                                <p class="text-xs text-emerald-500 mt-0.5">unités écoulées</p>
+                            </div>
+                        </div>
+
+                        @php
+                            $totalOriginal = $stats['total_stock'] + $stats['total_sold'];
+                            $percentSold = $totalOriginal > 0 ? round(($stats['total_sold'] / $totalOriginal) * 100) : 0;
+                        @endphp
+                        @if($totalOriginal > 0)
+                            <div class="mt-4 pt-4 border-t border-gray-100">
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <span class="text-xs text-gray-500">Progression des ventes</span>
+                                    <span class="text-xs font-semibold text-gray-700">{{ $percentSold }}%</span>
+                                </div>
+                                <div class="w-full bg-gray-100 rounded-full h-2">
+                                    <div class="bg-emerald-500 h-2 rounded-full" style="width: {{ $percentSold }}%"></div>
+                                </div>
+                                <p class="text-xs text-gray-400 mt-1">{{ $stats['total_sold'] }} vendu(s) sur {{ $totalOriginal }} unités au total</p>
+                            </div>
+                        @endif
+
+                        @if($stats['total_stock'] <= $productModel->stock_minimum)
+                            <div class="mt-4 flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <i data-lucide="alert-triangle" class="w-4 h-4 text-red-500 flex-shrink-0"></i>
+                                <p class="text-xs text-red-700 font-medium">Stock sous le seuil minimum ({{ $productModel->stock_minimum }} unités)</p>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+            @else
+            {{-- Liste des produits individuels (téléphones, tablettes, PC) --}}
             <div class="bg-white border border-gray-200 rounded-xl shadow-sm">
                 <div class="p-4 sm:p-6 border-b border-gray-100">
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
@@ -261,8 +327,9 @@
                             </a>
                         </div>
                     @endif
-                @endif
+                 @endif
             </div>
+            @endif {{-- @else accessoire --}}
 
         </div>
 

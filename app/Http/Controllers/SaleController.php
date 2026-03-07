@@ -23,7 +23,7 @@ class SaleController extends Controller
     {
         $this->authorize('viewAny', Sale::class);
 
-        $query = Sale::with(['product.productModel', 'seller', 'reseller']);
+        $query = Sale::with(['product.productModel', 'productModel', 'seller', 'reseller']);
 
         // ✅ SUPPRIMÉ le filtre par vendeur - tous voient toutes les ventes
         // Les vendeurs ont besoin de voir toutes les ventes pour gérer les retours clients
@@ -80,6 +80,7 @@ class SaleController extends Controller
 
         $sale->load([
             'product.productModel',
+            'productModel',
             'seller',
             'reseller',
             'tradeIn.productReceived.productModel',

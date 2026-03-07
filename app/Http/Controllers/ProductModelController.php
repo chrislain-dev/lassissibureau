@@ -85,30 +85,8 @@ class ProductModelController extends Controller
     {
         $validated = $request->validated();
         
-        return DB::transaction(function () use ($validated, $productService) {
+        return DB::transaction(function () use ($validated) {
             $productModel = ProductModel::create($validated);
-            
-            // Si c'est un accessoire et qu'une quantité initiale est fournie
-            if ($productModel->category->value === 'accessoire' && !empty($validated['quantity']) && (int)$validated['quantity'] > 0) {
-                $quantity = (int) $validated['quantity'];
-                
-                for ($i = 0; $i < $quantity; $i++) {
-                    $productService->createProduct([
-                        'product_model_id' => $productModel->id,
-                        'imei' => null,
-                        'serial_number' => null,
-                        'state' => ProductState::DISPONIBLE->value,
-                        'location' => ProductLocation::BOUTIQUE->value,
-                        'condition' => $productModel->condition_type?->value ?? 'neuf',
-                        'date_achat' => now()->format('Y-m-d'),
-                        'created_by' => auth()->id(),
-                    ]);
-                }
-                
-                return redirect()
-                    ->route('product-models.show', $productModel)
-                    ->with('success', "Modèle de produit créé avec succès et {$quantity} accessoires initialisés en boutique.");
-            }
 
             return redirect()
                 ->route('product-models.show', $productModel)
@@ -140,6 +118,7 @@ class ProductModelController extends Controller
             // Prix - Délégués au ProductModel
             'average_purchase_price' => $productModel->prix_revient_default ?? 0,
             'average_sale_price'     => $productModel->prix_vente_default ?? 0,
+            'average_price'          => $productModel->prix_vente_default ?? 0,
 
             // Valeurs
             'stock_value' => $productModel->stock_value,
@@ -151,10 +130,16 @@ class ProductModelController extends Controller
             'stock_minimum' => $productModel->stock_minimum,
 
             // Bénéfices réalisés
-            'total_profit' => $productModel->productsSold()
-                ->join('sales', 'products.id', '=', 'sales.product_id')
-                ->where('sales.is_confirmed', true)
-                ->sum('sales.benefice') ?? 0,
+            'total_profit' => \App\Models\Sale::where('is_confirmed', true)
+                ->where(function ($query) use ($productModel) {
+                    if ($productModel->isAccessoire()) {
+                        $query->where('product_model_id', $productModel->id);
+                    } else {
+                        $query->whereIn('product_id', $productModel->productsSold()->select('id'));
+                    }
+                })
+                ->get()
+                ->sum(fn ($sale) => $sale->benefice) ?? 0,
         ];
 
         return view('product-models.show', compact('productModel', 'stats'));
